@@ -689,6 +689,12 @@
             0% { transform: scale(1); opacity: 1; }
             100% { transform: translateY(-100px) scale(2); opacity: 0; }
         }
+        /* Стиль для отображения юзернейма канала */
+        .channel-username {
+            font-size: 12px;
+            color: #8e9aa6;
+            margin-top: 2px;
+        }
     </style>
 </head><body class="dark classic-style">
     <!-- Экран входа -->
@@ -1209,7 +1215,7 @@
         document.addEventListener('click', updateLastSeen);
         document.addEventListener('scroll', updateLastSeen);
         document.addEventListener('keydown', updateLastSeen);
-    }     // ---------- Вход / регистрация с поддержкой старых паролей ----------
+    }    // ---------- Вход / регистрация с поддержкой старых паролей ----------
     function updateLoginButtonState() {
         let phoneValid = validatePhone(phoneInput.value);
         let pwdValid = passwordInput.value.length >= 3;
@@ -1947,7 +1953,7 @@
         }
     });
 
-    // ---------- Каналы с поиском и настройками ----------
+    // ---------- Каналы с поиском и настройками (ИСПРАВЛЕНО) ----------
     let allChannelsData = [];
     async function renderChannelsList(searchTerm = '') {
         let { data: channels } = await supabaseClient
@@ -1975,6 +1981,7 @@
                 <div class="channel-info">
                     <div class="channel-name">${ch.name} ${badges}</div>
                     <div class="channel-subscribers">${ch.subscribers ? ch.subscribers.length : 0} подписчиков</div>
+                    ${ch.username ? `<div class="channel-username">@${ch.username}</div>` : ''}
                 </div>
             `;
             div.onclick = ()=> switchChannelView(ch.id);
@@ -2021,14 +2028,13 @@
             };
             chatHeaderActions.appendChild(btn);
         } else {
-            // Кнопка настроек канала
+            // Кнопка настроек канала (ИСПРАВЛЕНО: загружаем username)
             let settingsBtn = document.createElement('button');
             settingsBtn.textContent = '⚙️ Настройки';
             settingsBtn.onclick = () => {
                 channelSettingsName.value = ch.name;
                 channelSettingsUsername.value = ch.username || '';
                 channelSettingsModal.style.display = 'flex';
-                // Сохраняем id канала для редактирования
                 window.currentChannelForSettings = ch.id;
             };
             chatHeaderActions.appendChild(settingsBtn);
@@ -2043,12 +2049,12 @@
         }
     }
 
-    // Сохранение настроек канала
+    // Сохранение настроек канала (ИСПРАВЛЕНО: обработка ошибок)
     saveChannelSettings.onclick = async () => {
         let chId = window.currentChannelForSettings;
         if (!chId) return;
         let name = channelSettingsName.value.trim();
-        let username = channelSettingsUsername.value.trim().toLowerCase();
+        let username = channelSettingsUsername.value.trim().toLowerCase() || null;
         let avatar = null;
         if (channelSettingsAvatarInput.files[0]) {
             let reader = new FileReader();
@@ -2065,13 +2071,22 @@
     async function updateChannel(chId, name, username, avatar) {
         let updates = {};
         if (name) updates.name = name;
-        if (username !== undefined) updates.username = username;
+        updates.username = username; // передаём даже если null (очистить)
         if (avatar) updates.avatar = avatar;
-        await supabaseClient
+
+        let { error } = await supabaseClient
             .from('channels')
             .update(updates)
             .eq('id', chId);
+
+        if (error) {
+            alert('Ошибка при сохранении: ' + error.message);
+            return;
+        }
+
         channelSettingsModal.style.display = 'none';
+        // Очищаем поле загрузки аватарки
+        channelSettingsAvatarInput.value = '';
         renderChannelsList();
         switchChannelView(chId);
     }
@@ -2080,11 +2095,11 @@
         channelSettingsModal.style.display = 'none';
     };
 
-    // Создание канала
+    // Создание канала (ИСПРАВЛЕНО: передаём username)
     createChannelBtn.onclick = ()=> createChannelModal.style.display = 'flex';
     confirmCreateChannel.onclick = async ()=> {
         let name = channelNameInput.value.trim();
-        let username = channelUsernameInput.value.trim().toLowerCase();
+        let username = channelUsernameInput.value.trim().toLowerCase() || null;
         if (!name) return;
         let avatar = null;
         if (channelAvatarInput.files[0]) {
@@ -2144,6 +2159,7 @@
             div.innerHTML = `
                 <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
                 <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
+                ${ch.username ? `<br><small>@${ch.username}</small>` : ''}
             `;
             let btn = document.createElement('button');
             btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
