@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoxChat — финальная версия</title>
-    <!-- Подключаем CryptoJS для хеширования паролей -->
+    <!-- CryptoJS для хеширования паролей -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         /* --- Базовые стили (как в Telegram) --- */
@@ -127,7 +127,8 @@
         }
         .login-screen button:disabled{background:#555;cursor:not-allowed;transform:none;}
         .login-screen .error{color:#ff4d4d;margin-top:10px;font-size:14px;}
-        .login-screen a{color:#3390ec;text-decoration:none;font-size:14px;}
+        .login-screen a{color:#3390ec;text-decoration:none;font-size:14px;cursor:pointer;}
+        .login-screen a:hover{text-decoration:underline;}
         
         /* --- Основное приложение --- */
         .app{
@@ -249,7 +250,6 @@
             transition:transform 0.2s;
         }
         .channel-actions button:hover{transform:scale(1.02);}
-        /* Поиск каналов */
         .channel-search{
             padding:10px;
             margin-bottom:10px;
@@ -347,7 +347,6 @@
             position:relative;
             z-index:1;
         }
-        /* Скелетоны */
         .skeleton-message{
             height:60px;
             background:linear-gradient(90deg, #242f3d 25%, #2b3945 50%, #242f3d 75%);
@@ -591,13 +590,11 @@
             z-index: -2;
             transform: translateZ(-1px) scale(2);
         }
-
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-
         body.vox-style::after {
             content: "VoxShat";
             position: fixed;
@@ -617,13 +614,11 @@
             transform: rotate(-15deg) scale(1.5) translateZ(-0.5px) scale(1.5);
             animation: floatText 20s linear infinite;
         }
-
         @keyframes floatText {
             0% { transform: rotate(-15deg) scale(1.5) translateX(-10%) translateZ(-0.5px) scale(1.5); }
             50% { transform: rotate(-15deg) scale(1.5) translateX(10%) translateZ(-0.5px) scale(1.5); }
             100% { transform: rotate(-15deg) scale(1.5) translateX(-10%) translateZ(-0.5px) scale(1.5); }
         }
-
         body.vox-style .waves {
             position: fixed;
             bottom: 0;
@@ -638,13 +633,11 @@
             pointer-events: none;
             transform: translateZ(-0.3px) scale(1.3);
         }
-
         @keyframes waveMove {
             0% { transform: translateX(0) scaleX(1) translateZ(-0.3px) scale(1.3); }
             50% { transform: translateX(-5%) scaleX(1.02) translateZ(-0.3px) scale(1.3); }
             100% { transform: translateX(0) scaleX(1) translateZ(-0.3px) scale(1.3); }
         }
-
         body.vox-style .login-screen,
         body.vox-style .app {
             background-color: transparent !important;
@@ -653,13 +646,11 @@
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
         }
-
         body.vox-style .modal-content {
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             background-color: rgba(23, 33, 43, 0.7) !important;
         }
-
         /* --- Классическая тема (Telegram) --- */
         body.classic-style {
             background: #0e1621;
@@ -699,8 +690,7 @@
             100% { transform: translateY(-100px) scale(2); opacity: 0; }
         }
     </style>
-</head>
-<body class="dark classic-style">
+</head><body class="dark classic-style">
     <!-- Экран входа -->
     <div class="login-screen" id="loginScreen">
         <h2>
@@ -720,7 +710,7 @@
         <button id="loginBtn" disabled>Войти</button>
         <div class="error" id="loginError"></div>
         <div style="margin-top:5px;font-size:12px;color:#aaa;" id="debugInfo"></div>
-        <div style="margin-top:10px;"><a href="#" id="forgotPasswordLink" style="color:#3390ec;">Забыли пароль?</a></div>
+        <div style="margin-top:10px;"><a href="#" id="forgotPasswordLink">Забыли пароль?</a></div>
     </div>
 
     <!-- Модальное окно выбора страны -->
@@ -872,7 +862,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно всех каналов (поиск) -->
     <div class="modal" id="allChannelsModal">
         <div class="modal-content" style="width:400px;max-height:80vh;overflow-y:auto;">
             <h3>Поиск каналов</h3>
@@ -940,8 +929,7 @@
 
     <!-- Подключение Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-(function() {
+    <script>(function() {
     // ================== НАСТРОЙКИ SUPABASE ==================
     const supabaseUrl = 'https://yczrkdbyssogvqmwylow.supabase.co';
     const supabaseKey = 'sb_publishable_UZ0xRxv_jfN4ZtDlgv0DAw_2NBHd8df';
@@ -958,7 +946,7 @@
     let unsubscribeMessages = null;
     let unsubscribeTyping = null;
     let activeTimers = {};
-    let resetCode = null;
+    let resetCode = null; // для сброса пароля
     let editMessageId = null;
     let replyToMessage = null;
     let typingTimeout = null;
@@ -967,7 +955,7 @@
     const messagesLimit = 30;
     let messagesOffset = 0;
 
-    // Для анимаций
+    // Анимации
     function showFloatingReaction(reaction, x, y) {
         const div = document.createElement('div');
         div.className = 'floating-reaction';
@@ -990,7 +978,7 @@
         badges: { blue: true, red: false }
     };
 
-    // ---------- Элементы DOM (получение) ----------
+    // ---------- Элементы DOM ----------
     const loginScreen = document.getElementById('loginScreen');
     const app = document.getElementById('app');
     const phoneInput = document.getElementById('phoneInput');
@@ -1081,7 +1069,7 @@
     const channelSearchInput = document.getElementById('channelSearchInput');
     const allChannelsSearch = document.getElementById('allChannelsSearch');
 
-    // Новые элементы для стран, реакций, стилей
+    // Стили и страны
     const openSettingsBtn = document.getElementById('openSettingsBtn');
     const openSettingsAppBtn = document.getElementById('openSettingsAppBtn');
     const styleModal = document.getElementById('styleModal');
@@ -1097,7 +1085,6 @@
     const reactionOptions = document.querySelectorAll('.reaction-option');
     let currentReactionMsg = null;
 
-    // Массив стран
     const countries = [
         { name: 'Россия', code: '+7', flag: '🇷🇺' },
         { name: 'Беларусь', code: '+375', flag: '🇧🇾' },
@@ -1222,9 +1209,7 @@
         document.addEventListener('click', updateLastSeen);
         document.addEventListener('scroll', updateLastSeen);
         document.addEventListener('keydown', updateLastSeen);
-    }
-
-    // ---------- Вход / регистрация через Supabase с хешированием паролей ----------
+    }     // ---------- Вход / регистрация с поддержкой старых паролей ----------
     function updateLoginButtonState() {
         let phoneValid = validatePhone(phoneInput.value);
         let pwdValid = passwordInput.value.length >= 3;
@@ -1248,7 +1233,16 @@
 
         if (user) {
             let hashed = hashPassword(pwd);
-            if (user.password === hashed) {
+            // Проверяем: если пароль совпадает с открытым или хешем
+            if (user.password === pwd || user.password === hashed) {
+                // Если в базе лежит открытый текст, обновляем на хеш
+                if (user.password === pwd) {
+                    user.password = hashed;
+                    await supabaseClient
+                        .from('users')
+                        .update({ password: hashed })
+                        .eq('phone', phone);
+                }
                 currentUser = user;
                 loginScreen.classList.add('fade-out');
                 setTimeout(() => {
@@ -1352,6 +1346,61 @@
         }
         document.getElementById('debugInfo').innerHTML = '';
     });
+
+    // ---------- Забыли пароль ----------
+    forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetModal.style.display = 'flex';
+        resetPhone.value = '+7';
+        resetCodeInput.value = '';
+        resetCode = null;
+    });
+
+    sendResetCodeBtn.addEventListener('click', () => {
+        let phone = resetPhone.value.trim();
+        if (validatePhone(phone)) {
+            // Имитация отправки кода (в реальном проекте надо через SMS)
+            resetCode = Math.floor(1000 + Math.random() * 9000).toString();
+            alert(`Код подтверждения: ${resetCode}`);
+        } else {
+            alert('Введите корректный номер');
+        }
+    });
+
+    verifyResetBtn.addEventListener('click', () => {
+        let phone = resetPhone.value.trim();
+        let code = resetCodeInput.value.trim();
+        if (!validatePhone(phone)) { alert('Некорректный номер'); return; }
+        if (code !== resetCode) { alert('Неверный код'); return; }
+        // Сохраняем номер для смены пароля
+        window.resetPhoneForPassword = phone;
+        resetModal.style.display = 'none';
+        newPasswordModal.style.display = 'flex';
+    });
+
+    cancelResetBtn.addEventListener('click', () => { resetModal.style.display = 'none'; });
+
+    setNewPasswordBtn.addEventListener('click', async () => {
+        let p1 = newPassword.value;
+        let p2 = newPasswordConfirm.value;
+        if (p1 !== p2) { alert('Пароли не совпадают'); return; }
+        if (!validatePassword(p1)) { alert('Пароль должен быть минимум 6 символов, содержать буквы и цифры'); return; }
+        let phone = window.resetPhoneForPassword;
+        let { data: user } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
+        if (user) {
+            let hashed = hashPassword(p1);
+            await supabaseClient
+                .from('users')
+                .update({ password: hashed })
+                .eq('phone', phone);
+            alert('Пароль успешно изменён');
+        }
+        newPasswordModal.style.display = 'none';
+        newPassword.value = '';
+        newPasswordConfirm.value = '';
+    });
+
+    cancelNewPasswordBtn.addEventListener('click', () => { newPasswordModal.style.display = 'none'; });
 
     // ---------- Профиль ----------
     profileAvatarInput.onchange = function(e) {
@@ -1458,9 +1507,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });
-
-    // ---------- Переключение режимов ----------
+    });    // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -2122,10 +2169,6 @@
     allChannelsSearch.addEventListener('input', (e) => {
         renderAllChannels(e.target.value);
     });
-
-    // Вместо showAllChannelsBtn используем поиск в интерфейсе каналов (уже есть поле поиска), но можно оставить кнопку для модалки всех каналов
-    // У нас уже есть showAllChannelsBtn? В коде он не объявлен, но добавим его из предыдущих версий? В текущем интерфейсе нет кнопки "Все каналы", только поиск. Если нужно, можно добавить.
-    // Пропустим для краткости.
 
     // ---------- Друзья (полная реализация, с точным временем) ----------
     function renderFriendsView() {
