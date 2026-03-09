@@ -6,6 +6,8 @@
     <title>VoxChat — финальная версия</title>
     <!-- CryptoJS для хеширования паролей -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- Favicon (эмодзи-чат) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
     <style>
         /* --- Базовые стили (как в Telegram) --- */
         *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;}
@@ -689,11 +691,6 @@
             0% { transform: scale(1); opacity: 1; }
             100% { transform: translateY(-100px) scale(2); opacity: 0; }
         }
-        /* Стиль для юзернейма канала */
-        .channel-username {
-            font-size: 12px;
-            color: #8e9aa6;
-        }
     </style>
 </head><body class="dark classic-style">
     <!-- Экран входа -->
@@ -702,7 +699,7 @@
             Вход в VoxChat
             <span class="settings-icon" id="openSettingsBtn">⚙️</span>
         </h2>
-        <!-- Блок выбора региона (автоматически определится по IP, но можно изменить) -->
+        <!-- Блок выбора региона (автоматически определится по IP) -->
         <div class="region-selector">
             <span>Ваш регион:</span>
             <button id="selectCountryBtn">
@@ -951,7 +948,7 @@
     let unsubscribeMessages = null;
     let unsubscribeTyping = null;
     let activeTimers = {};
-    let resetCode = null;
+    let resetCode = null; // для сброса пароля
     let editMessageId = null;
     let replyToMessage = null;
     let typingTimeout = null;
@@ -1132,10 +1129,11 @@
     closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
     populateCountryList();
 
-    fetch('https://ipapi.co/json/')
+    // ---------- Автоопределение страны через ipinfo.io (токен вставлен) ----------
+    fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
         .then(res => res.json())
         .then(data => {
-            const countryCode = data.country_code;
+            const countryCode = data.country; // для ipinfo возвращает "RU", "US" и т.д.
             if (countryCode === 'RU') currentCountry = countries[0];
             else if (countryCode === 'BY') currentCountry = countries[1];
             else if (countryCode === 'UA') currentCountry = countries[2];
@@ -1238,7 +1236,9 @@
 
         if (user) {
             let hashed = hashPassword(pwd);
+            // Проверяем: если пароль совпадает с открытым или хешем
             if (user.password === pwd || user.password === hashed) {
+                // Если в базе лежит открытый текст, обновляем на хеш
                 if (user.password === pwd) {
                     user.password = hashed;
                     await supabaseClient
@@ -1362,6 +1362,7 @@
     sendResetCodeBtn.addEventListener('click', () => {
         let phone = resetPhone.value.trim();
         if (validatePhone(phone)) {
+            // Имитация отправки кода (в реальном проекте надо через SMS)
             resetCode = Math.floor(1000 + Math.random() * 9000).toString();
             alert(`Код подтверждения: ${resetCode}`);
         } else {
@@ -1374,6 +1375,7 @@
         let code = resetCodeInput.value.trim();
         if (!validatePhone(phone)) { alert('Некорректный номер'); return; }
         if (code !== resetCode) { alert('Неверный код'); return; }
+        // Сохраняем номер для смены пароля
         window.resetPhoneForPassword = phone;
         resetModal.style.display = 'none';
         newPasswordModal.style.display = 'flex';
@@ -1508,9 +1510,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });
-
-    // ---------- Переключение режимов ----------
+    });    // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -1563,7 +1563,7 @@
     profileModeBtn.onclick = ()=> initMode('profile');
     settingsModeBtn.onclick = ()=> initMode('settings');
 
-    // ---------- Контакты ----------
+    // ---------- Контакты (исправленная версия с обратными кавычками) ----------
     async function renderContacts() {
         contactsListEl.innerHTML = '';
         let botDiv = document.createElement('div');
@@ -1703,11 +1703,10 @@
 
     // ---------- Сообщения ----------
     function getChatId(contactId) {
-        if (!contactId) return '';
+        if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
         if (contactId === 'bot') return 'bot';
         if (contactId.startsWith('channel_')) return contactId;
-        if (!currentUser) return '';
         return `private_${[currentUser.phone, contactId].sort().join('_')}`;
     }
 
@@ -1717,6 +1716,7 @@
         if (!loadMore) {
             messagesOffset = 0;
             messagesContainer.innerHTML = '';
+            // Показываем скелетоны
             for (let i = 0; i < 5; i++) {
                 let skeleton = document.createElement('div');
                 skeleton.className = 'skeleton-message';
@@ -1735,7 +1735,7 @@
             isLoadingMessages = false;
             return;
         }
-        if (!loadMore) messagesContainer.innerHTML = '';
+        if (!loadMore) messagesContainer.innerHTML = ''; // убираем скелетоны
         if (msgs.length < messagesLimit) hasMoreMessages = false;
         msgs.reverse();
         if (loadMore) {
@@ -1923,10 +1923,6 @@
         let text = messageInput.value.trim();
         if (!text || !currentUser) return;
         let chatId = getChatId(currentContactId);
-        if (!chatId) {
-            console.error('chatId не определён');
-            return;
-        }
         let msgObj = {
             chat_id: chatId,
             sender: currentUser.phone,
@@ -1954,638 +1950,7 @@
         }
     });
 
-    // ---------- Каналы с поиском и настройками ----------
-    let allChannelsData = [];
-    async function renderChannelsList(searchTerm = '') {
-        let { data: channels } = await supabaseClient
-            .from('channels')
-            .select('*');
-        allChannelsData = channels || [];
-        let filtered = channels ? channels.filter(ch => 
-            ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
-            (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-             (ch.username && ch.username.toLowerCase().includes(searchTerm.toLowerCase())))
-        ) : [];
-        channelsListEl.innerHTML = '';
-        if (!filtered || filtered.length === 0) {
-            channelsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет каналов</div>';
-            return;
-        }
-        filtered.forEach(ch => {
-            let div = document.createElement('div');
-            div.className = `channel-item ${ch.id === currentContactId ? 'active' : ''}`;
-            let badges = '';
-            if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
-            if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
-            div.innerHTML = `
-                <div class="channel-avatar">${ch.avatar ? `<img src="${ch.avatar}">` : '📢'}</div>
-                <div class="channel-info">
-                    <div class="channel-name">${ch.name} ${badges}</div>
-                    <div class="channel-subscribers">${ch.subscribers ? ch.subscribers.length : 0} подписчиков</div>
-                    ${ch.username ? `<div class="channel-username">@${ch.username}</div>` : ''}
-                </div>
-            `;
-            div.onclick = ()=> switchChannelView(ch.id);
-            channelsListEl.appendChild(div);
-        });
-    }
-
-    channelSearchInput.addEventListener('input', (e) => {
-        renderChannelsList(e.target.value);
-    });
-
-    async function switchChannelView(chId) {
-        if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
-            unsubscribeMessages();
-            unsubscribeMessages = null;
-        }
-        currentContactId = String(chId);
-        renderChannelsList(channelSearchInput.value);
-        let { data: ch } = await supabaseClient
-            .from('channels')
-            .select('*')
-            .eq('id', chId)
-            .single();
-        if (!ch) return;
-        let badges = '';
-        if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
-        if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
-        chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
-        chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
-        chatHeaderActions.innerHTML = '';
-        let isAdmin = ch.createdBy === currentUser.phone;
-        if (!isAdmin) {
-            let btn = document.createElement('button');
-            btn.textContent = 'Отписаться';
-            btn.onclick = async ()=> {
-                let idx = ch.subscribers.indexOf(currentUser.phone);
-                if (idx !== -1) ch.subscribers.splice(idx,1);
-                await supabaseClient
-                    .from('channels')
-                    .update({ subscribers: ch.subscribers })
-                    .eq('id', ch.id);
-                renderChannelsList();
-                clearChatArea();
-            };
-            chatHeaderActions.appendChild(btn);
-        } else {
-            let settingsBtn = document.createElement('button');
-            settingsBtn.textContent = '⚙️ Настройки';
-            settingsBtn.onclick = () => {
-                channelSettingsName.value = ch.name;
-                channelSettingsUsername.value = ch.username || '';
-                channelSettingsModal.style.display = 'flex';
-                window.currentChannelForSettings = ch.id;
-            };
-            chatHeaderActions.appendChild(settingsBtn);
-        }
-        subscribeToMessages(chId);
-        if (isAdmin) {
-            chatInput.style.display = 'flex';
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-        } else {
-            chatInput.style.display = 'none';
-        }
-    }
-
-    // Сохранение настроек канала
-    saveChannelSettings.onclick = async () => {
-        let chId = window.currentChannelForSettings;
-        if (!chId) return;
-        let name = channelSettingsName.value.trim();
-        let username = channelSettingsUsername.value.trim().toLowerCase();
-        let avatar = null;
-        if (channelSettingsAvatarInput.files[0]) {
-            let reader = new FileReader();
-            reader.onload = async ev => {
-                avatar = ev.target.result;
-                await updateChannel(chId, name, username, avatar);
-            };
-            reader.readAsDataURL(channelSettingsAvatarInput.files[0]);
-        } else {
-            await updateChannel(chId, name, username, null);
-        }
-    };
-
-    async function updateChannel(chId, name, username, avatar) {
-        let updates = {};
-        if (name) updates.name = name;
-        updates.username = username || null;
-        if (avatar) updates.avatar = avatar;
-
-        let { error } = await supabaseClient
-            .from('channels')
-            .update(updates)
-            .eq('id', chId);
-
-        if (error) {
-            alert('Ошибка при сохранении: ' + error.message);
-            return;
-        }
-
-        channelSettingsModal.style.display = 'none';
-        renderChannelsList();
-        switchChannelView(chId);
-    }
-
-    closeChannelSettings.onclick = () => {
-        channelSettingsModal.style.display = 'none';
-    };
-
-    // Создание канала
-    createChannelBtn.onclick = ()=> createChannelModal.style.display = 'flex';
-    confirmCreateChannel.onclick = async ()=> {
-        let name = channelNameInput.value.trim();
-        let username = channelUsernameInput.value.trim().toLowerCase();
-        if (!name) return;
-        let avatar = null;
-        if (channelAvatarInput.files[0]) {
-            let reader = new FileReader();
-            reader.onload = async ev => {
-                avatar = ev.target.result;
-                await finishCreate(name, username, avatar);
-            };
-            reader.readAsDataURL(channelAvatarInput.files[0]);
-        } else {
-            await finishCreate(name, username, null);
-        }
-    };
-    async function finishCreate(name, username, avatar) {
-        let newCh = {
-            name,
-            username,
-            avatar,
-            createdBy: currentUser.phone,
-            subscribers: [currentUser.phone],
-            badges: {}
-        };
-        let { data, error } = await supabaseClient
-            .from('channels')
-            .insert([newCh])
-            .select()
-            .single();
-        if (error) {
-            alert('Ошибка создания канала: ' + error.message);
-            return;
-        }
-        channelNameInput.value = '';
-        channelUsernameInput.value = '';
-        channelAvatarInput.value = '';
-        createChannelModal.style.display = 'none';
-        initMode('channels');
-        switchChannelView(data.id);
-    }
-    cancelCreateChannel.onclick = ()=> {
-        createChannelModal.style.display = 'none';
-        channelNameInput.value = '';
-        channelUsernameInput.value = '';
-    };
-
-    // Поиск всех каналов
-    async function renderAllChannels(search = '') {
-        let { data: allChannels } = await supabaseClient
-            .from('channels')
-            .select('*');
-        allChannelsList.innerHTML = '';
-        (allChannels || []).forEach(ch => {
-            if (!ch.name.toLowerCase().includes(search.toLowerCase()) && 
-                !(ch.username && ch.username.toLowerCase().includes(search.toLowerCase()))) return;
-            let div = document.createElement('div');
-            div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
-            let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
-            div.innerHTML = `
-                <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
-                <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
-            `;
-            let btn = document.createElement('button');
-            btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
-            btn.disabled = isSub;
-            btn.onclick = async ()=>{
-                if (!isSub) {
-                    if (!ch.subscribers) ch.subscribers = [];
-                    ch.subscribers.push(currentUser.phone);
-                    await supabaseClient
-                        .from('channels')
-                        .update({ subscribers: ch.subscribers })
-                        .eq('id', ch.id);
-                    btn.disabled = true;
-                    btn.textContent = '✓ Подписан';
-                    renderChannelsList();
-                }
-            };
-            div.appendChild(btn);
-            allChannelsList.appendChild(div);
-        });
-    }
-
-    allChannelsSearch.addEventListener('input', (e) => {
-        renderAllChannels(e.target.value);
-    });
-
-    // ---------- Друзья (полная реализация, с точным временем) ----------
-    function renderFriendsView() {
-        ensureFriends(currentUser);
-        friendsView.innerHTML = '';
-
-        let addBtn = document.createElement('button');
-        addBtn.textContent = '➕ Добавить друга';
-        addBtn.style.margin = '10px';
-        addBtn.style.padding = '10px';
-        addBtn.style.width = 'calc(100% - 20px)';
-        addBtn.style.border = 'none';
-        addBtn.style.borderRadius = '20px';
-        addBtn.style.background = '#3390ec';
-        addBtn.style.color = '#fff';
-        addBtn.style.cursor = 'pointer';
-        addBtn.onclick = ()=> {
-            addFriendModal.style.display = 'flex';
-            friendSearchResult.innerHTML = '';
-        };
-        friendsView.appendChild(addBtn);
-
-        // Мои друзья
-        let friendsSection = document.createElement('div');
-        friendsSection.className = 'friend-section';
-        friendsSection.innerHTML = '<h3>Мои друзья</h3>';
-        if (currentUser.friends.list.length === 0) {
-            friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
-        } else {
-            currentUser.friends.list.forEach(phone => {
-                supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single()
-                    .then(({ data: friend }) => {
-                        if (friend) {
-                            let div = document.createElement('div');
-                            div.className = 'friend-item';
-                            let badges = '';
-                            if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
-                            if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
-                            let status = 'онлайн';
-                            if (friend.last_seen) {
-                                let diff = Date.now() - new Date(friend.last_seen).getTime();
-                                if (diff > 120000) {
-                                    let date = new Date(friend.last_seen);
-                                    status = 'был ' + date.toLocaleTimeString().slice(0,5);
-                                }
-                            }
-                            div.innerHTML = `
-                                <div class="friend-avatar">${friend.avatar ? `<img src="${friend.avatar}">` : '👤'}</div>
-                                <div class="friend-info">
-                                    <div class="friend-name">${friend.name || friend.username || phone} ${badges}</div>
-                                    <div class="friend-status">${status}</div>
-                                </div>
-                                <button class="msg-btn" style="padding:5px 10px;background:#3390ec;border:none;border-radius:12px;color:#fff;">💬</button>
-                            `;
-                            div.querySelector('.msg-btn').onclick = (e) => {
-                                e.stopPropagation();
-                                initMode('chats');
-                                switchContact(phone);
-                            };
-                            friendsSection.appendChild(div);
-                        }
-                    });
-            });
-        }
-        friendsView.appendChild(friendsSection);
-
-        // Входящие заявки
-        let incomingSection = document.createElement('div');
-        incomingSection.className = 'friend-section';
-        incomingSection.innerHTML = '<h3>Входящие заявки</h3>';
-        if (currentUser.friends.incoming.length === 0) {
-            incomingSection.innerHTML += '<p style="color:#8e9aa6;">Нет входящих заявок</p>';
-        } else {
-            currentUser.friends.incoming.forEach(phone => {
-                supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single()
-                    .then(({ data: user }) => {
-                        if (user) {
-                            let div = document.createElement('div');
-                            div.className = 'friend-item';
-                            div.innerHTML = `
-                                <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
-                                <div class="friend-info">
-                                    <div class="friend-name">${user.name || user.username || phone}</div>
-                                    <div class="friend-status">@${user.username || 'нет'}</div>
-                                </div>
-                                <div style="display:flex;gap:5px;">
-                                    <button class="accept-btn" data-phone="${phone}" style="padding:5px 10px;background:#4caf50;border:none;border-radius:12px;color:#fff;">✓</button>
-                                    <button class="reject-btn" data-phone="${phone}" style="padding:5px 10px;background:#f44336;border:none;border-radius:12px;color:#fff;">✗</button>
-                                </div>
-                            `;
-                            div.querySelector('.accept-btn').onclick = (e) => {
-                                e.stopPropagation();
-                                acceptFriendRequest(phone);
-                            };
-                            div.querySelector('.reject-btn').onclick = (e) => {
-                                e.stopPropagation();
-                                rejectFriendRequest(phone);
-                            };
-                            incomingSection.appendChild(div);
-                        }
-                    });
-            });
-        }
-        friendsView.appendChild(incomingSection);
-
-        // Исходящие заявки
-        let outgoingSection = document.createElement('div');
-        outgoingSection.className = 'friend-section';
-        outgoingSection.innerHTML = '<h3>Исходящие заявки</h3>';
-        if (currentUser.friends.outgoing.length === 0) {
-            outgoingSection.innerHTML += '<p style="color:#8e9aa6;">Нет исходящих заявок</p>';
-        } else {
-            currentUser.friends.outgoing.forEach(phone => {
-                supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single()
-                    .then(({ data: user }) => {
-                        if (user) {
-                            let div = document.createElement('div');
-                            div.className = 'friend-item';
-                            div.innerHTML = `
-                                <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
-                                <div class="friend-info">
-                                    <div class="friend-name">${user.name || user.username || phone}</div>
-                                    <div class="friend-status">ожидание</div>
-                                </div>
-                                <button class="cancel-btn" data-phone="${phone}" style="padding:5px 10px;background:#f44336;border:none;border-radius:12px;color:#fff;">Отменить</button>
-                            `;
-                            div.querySelector('.cancel-btn').onclick = (e) => {
-                                e.stopPropagation();
-                                cancelFriendRequest(phone);
-                            };
-                            outgoingSection.appendChild(div);
-                        }
-                    });
-            });
-        }
-        friendsView.appendChild(outgoingSection);
-    }
-
-    // ---------- Поиск друга ----------
-    searchFriendBtn.onclick = async ()=>{
-        ensureFriends(currentUser);
-        let username = friendUsername.value.trim();
-        if (username.startsWith('@')) username = username.slice(1);
-        if (!username) return;
-        let searchUsername = username.toLowerCase();
-        let { data: foundUser, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .ilike('username', searchUsername)
-            .maybeSingle();
-
-        friendSearchResult.innerHTML = '';
-        if (error) {
-            friendSearchResult.innerHTML = '<p style="color:#f44336;">Ошибка поиска</p>';
-            return;
-        }
-        if (!foundUser) {
-            friendSearchResult.innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
-            return;
-        }
-        if (foundUser.phone === currentUser.phone) {
-            friendSearchResult.innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
-            return;
-        }
-        if (currentUser.friends.list.includes(foundUser.phone)) {
-            friendSearchResult.innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
-            return;
-        }
-        if (currentUser.friends.outgoing.includes(foundUser.phone)) {
-            friendSearchResult.innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
-            return;
-        }
-        if (currentUser.friends.incoming.includes(foundUser.phone)) {
-            friendSearchResult.innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
-            return;
-        }
-
-        addFriendModal.style.display = 'none';
-        friendUsername.value = '';
-        showUserProfile(foundUser);
-    };
-
-    function showUserProfile(user) {
-        let modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'flex';
-        let badges = '';
-        if (user.badges?.blue) badges += '<span class="verified blue">✓</span>';
-        if (user.badges?.red) badges += '<span class="verified red">✓</span>';
-        modal.innerHTML = `
-            <div class="modal-content" style="width:300px;">
-                <div class="profile-avatar" style="margin:10px auto;">${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;">` : '👤'}</div>
-                <h3>${user.name || user.username || user.phone} ${badges}</h3>
-                <p>@${user.username || 'нет'}</p>
-                <button id="sendFriendRequestFromProfileBtn" style="padding:10px;background:#3390ec;color:#fff;border:none;border-radius:20px;width:100%;margin-top:10px;">Отправить заявку</button>
-                <button id="sendMessageFromProfileBtn" style="padding:10px;background:#4caf50;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Отправить сообщение</button>
-                <button id="closeProfileModalBtn" style="padding:10px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Закрыть</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('sendFriendRequestFromProfileBtn').onclick = async ()=>{
-            await sendFriendRequest(user.phone);
-            document.body.removeChild(modal);
-        };
-        document.getElementById('sendMessageFromProfileBtn').onclick = ()=>{
-            document.body.removeChild(modal);
-            initMode('chats');
-            switchContact(user.phone);
-        };
-        document.getElementById('closeProfileModalBtn').onclick = ()=>{
-            document.body.removeChild(modal);
-        };
-    }
-
-    async function sendFriendRequest(targetPhone) {
-        ensureFriends(currentUser);
-        if (!currentUser.friends.outgoing.includes(targetPhone)) {
-            currentUser.friends.outgoing.push(targetPhone);
-        }
-        let { data: targetUser } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('phone', targetPhone)
-            .single();
-        if (targetUser) {
-            ensureFriends(targetUser);
-            if (!targetUser.friends.incoming.includes(currentUser.phone)) {
-                targetUser.friends.incoming.push(currentUser.phone);
-            }
-            await supabaseClient
-                .from('users')
-                .update({ friends: targetUser.friends })
-                .eq('phone', targetPhone);
-        }
-        await supabaseClient
-            .from('users')
-            .update({ friends: currentUser.friends })
-            .eq('phone', currentUser.phone);
-        renderFriendsView();
-        alert('Заявка отправлена');
-    }
-
-    async function acceptFriendRequest(phone) {
-        ensureFriends(currentUser);
-        currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-        if (!currentUser.friends.list.includes(phone)) currentUser.friends.list.push(phone);
-        let { data: other } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('phone', phone)
-            .single();
-        if (other) {
-            ensureFriends(other);
-            other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-            if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
-            await supabaseClient
-                .from('users')
-                .update({ friends: other.friends })
-                .eq('phone', phone);
-        }
-        await supabaseClient
-            .from('users')
-            .update({ friends: currentUser.friends })
-            .eq('phone', currentUser.phone);
-        renderFriendsView();
-        renderContacts();
-        alert('Заявка принята');
-    }
-
-    async function rejectFriendRequest(phone) {
-        ensureFriends(currentUser);
-        currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-        let { data: other } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('phone', phone)
-            .single();
-        if (other) {
-            ensureFriends(other);
-            other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-            await supabaseClient
-                .from('users')
-                .update({ friends: other.friends })
-                .eq('phone', phone);
-        }
-        await supabaseClient
-            .from('users')
-            .update({ friends: currentUser.friends })
-            .eq('phone', currentUser.phone);
-        renderFriendsView();
-    }
-
-    async function cancelFriendRequest(phone) {
-        ensureFriends(currentUser);
-        currentUser.friends.outgoing = currentUser.friends.outgoing.filter(p => p !== phone);
-        let { data: other } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('phone', phone)
-            .single();
-        if (other) {
-            ensureFriends(other);
-            other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
-            await supabaseClient
-                .from('users')
-                .update({ friends: other.friends })
-                .eq('phone', phone);
-        }
-        await supabaseClient
-            .from('users')
-            .update({ friends: currentUser.friends })
-            .eq('phone', currentUser.phone);
-        renderFriendsView();
-    }
-
-    closeAddFriendModal.onclick = ()=>{
-        addFriendModal.style.display = 'none';
-        friendUsername.value = '';
-        friendSearchResult.innerHTML = '';
-    };
-
-    // ---------- Редактирование сообщения ----------
-    saveEditBtn.onclick = async ()=>{
-        if (editMessageId) {
-            let { chatId, index, msg } = editMessageId;
-            let newText = editMessageText.value.trim();
-            if (newText) {
-                await supabaseClient
-                    .from('messages')
-                    .update({ text: newText })
-                    .eq('id', msg.id);
-            }
-            editMessageModal.style.display = 'none';
-            editMessageId = null;
-        }
-    };
-    cancelEditBtn.onclick = ()=>{
-        editMessageModal.style.display = 'none';
-        editMessageId = null;
-    };
-
-    // ---------- Голосовой ввод ----------
-    function initSpeech() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            micButton.style.display = 'none';
-            return;
-        }
-        let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let rec = new SR();
-        rec.lang = 'ru-RU';
-        rec.interimResults = false;
-        micButton.onclick = ()=> {
-            micButton.style.backgroundColor = '#f44336';
-            rec.start();
-        };
-        rec.onresult = e => {
-            messageInput.value = e.results[0][0].transcript;
-            micButton.style.backgroundColor = '';
-        };
-        rec.onerror = ()=> micButton.style.backgroundColor = '';
-        rec.onend = ()=> micButton.style.backgroundColor = '';
-    }
-
-    // ---------- Тема ----------
-    themeToggle.onclick = ()=> {
-        let b = document.body;
-        b.classList.toggle('light');
-        b.classList.toggle('dark');
-        themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
-    };
-
-    function clearChatArea() {
-        chatHeaderTitle.textContent = 'Выберите чат';
-        chatHeaderSubtitle.textContent = '';
-        chatHeaderActions.innerHTML = '';
-        messagesContainer.innerHTML = '';
-        chatInput.style.display = 'none';
-    }
-
-    function updateStats() {
-        // можно добавить подсчёт подписчиков, но пока заглушка
-    }
-
-    // Инициализация
-    phoneInput.value = '+7';
-    passwordInput.value = '';
-    updateLoginButtonState();
-})();
-</script>
-</body>
-</html>    // ---------- Каналы с поиском и настройками ----------
+    // ---------- Каналы с поиском и настройками (исправленные) ----------
     let allChannelsData = [];
     async function renderChannelsList(searchTerm = '') {
         let { data: channels } = await supabaseClient
@@ -2815,7 +2180,7 @@
         renderAllChannels(e.target.value);
     });
 
-    // ---------- Друзья ----------
+    // ---------- Друзья (исправленные блоки) ----------
     function renderFriendsView() {
         ensureFriends(currentUser);
         friendsView.innerHTML = '';
@@ -2836,7 +2201,7 @@
         };
         friendsView.appendChild(addBtn);
 
-        // Мои друзья
+        // Мои друзья (исправленный блок)
         let friendsSection = document.createElement('div');
         friendsSection.className = 'friend-section';
         friendsSection.innerHTML = '<h3>Мои друзья</h3>';
@@ -2884,7 +2249,7 @@
         }
         friendsView.appendChild(friendsSection);
 
-        // Входящие заявки
+        // Входящие заявки (оставляем как есть, они не вызывали ошибок)
         let incomingSection = document.createElement('div');
         incomingSection.className = 'friend-section';
         incomingSection.innerHTML = '<h3>Входящие заявки</h3>';
@@ -2927,7 +2292,7 @@
         }
         friendsView.appendChild(incomingSection);
 
-        // Исходящие заявки
+        // Исходящие заявки (аналогично)
         let outgoingSection = document.createElement('div');
         outgoingSection.className = 'friend-section';
         outgoingSection.innerHTML = '<h3>Исходящие заявки</h3>';
@@ -3041,6 +2406,7 @@
         };
     }
 
+    // Функции управления друзьями (без изменений)
     async function sendFriendRequest(targetPhone) {
         ensureFriends(currentUser);
         if (!currentUser.friends.outgoing.includes(targetPhone)) {
@@ -3167,9 +2533,6 @@
         editMessageModal.style.display = 'none';
         editMessageId = null;
     };
-
-    // ---------- Показать все каналы (модалка поиска) ----------
-    // Уже реализовано выше
 
     // ---------- Голосовой ввод ----------
     function initSpeech() {
