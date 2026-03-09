@@ -165,6 +165,7 @@
         .verified.red{color:#e74c3c;}
         .premium-star{color:gold;font-size:16px;margin-left:4px;}
         .contact-status,.channel-subscribers,.friend-status{font-size:13px;color:#8e9aa6;}
+        .typing-indicator{font-size:12px;color:#4caf50;font-style:italic;}
         .channel-actions{padding:10px;display:flex;flex-direction:column;gap:5px;}
         .channel-actions button{padding:10px;border:none;border-radius:20px;background:#2b5278;color:#fff;cursor:pointer;}
         .profile-view{padding:20px;display:flex;flex-direction:column;align-items:center;gap:15px;}
@@ -173,6 +174,7 @@
         .profile-field{width:100%;max-width:250px;padding:10px;border:1px solid #2b3945;border-radius:20px;background:#242f3d;color:#fff;text-align:center;}
         body.light .profile-field{background:#f1f3f5;color:#222;}
         .profile-save-btn{padding:10px 20px;border:none;border-radius:20px;background:#3390ec;color:#fff;cursor:pointer;margin-top:5px;}
+        .danger-btn{background:#f44336 !important;}
         .settings-view{padding:20px;display:flex;flex-direction:column;gap:20px;}
         .setting-item{background:#242f3d;padding:15px;border-radius:12px;}
         body.light .setting-item{background:#f1f3f5;}
@@ -195,9 +197,12 @@
         .reaction-btn{background:none;border:none;font-size:16px;cursor:pointer;color:#888;display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:12px;}
         .reaction-btn:hover{background:rgba(128,128,128,.2);}
         .reaction-btn.active{color:#ff4d4d;}
-        .edit-btn,.delete-btn{background:none;border:none;font-size:16px;cursor:pointer;color:#888;padding:2px 6px;border-radius:12px;}
+        .reaction-picker{display:flex;gap:5px;margin-top:5px;}
+        .reaction-picker button{background:none;border:none;font-size:20px;cursor:pointer;padding:2px;}
+        .edit-btn,.delete-btn,.reply-btn{background:none;border:none;font-size:16px;cursor:pointer;color:#888;padding:2px 6px;border-radius:12px;}
         .edit-btn:hover{color:#4caf50;}
         .delete-btn:hover{color:#f44336;}
+        .reply-btn:hover{color:#2196F3;}
         .views-count{font-size:12px;color:#8e9aa6;margin-left:10px;}
         .chat-input{display:flex;padding:15px;gap:8px;border-top:1px solid;flex-wrap:wrap;}
         .chat-input input{flex:1;min-width:150px;padding:12px 15px;border-radius:24px;border:1px solid;outline:none;font-size:15px;}
@@ -339,11 +344,11 @@
             Вход в VoxChat
             <span class="settings-icon" id="openSettingsBtn">⚙️</span>
         </h2>
-        <!-- Блок выбора региона -->
+        <!-- Блок выбора региона (автоматически определится по IP, но можно изменить) -->
         <div class="region-selector">
             <span>Ваш регион:</span>
             <button id="selectCountryBtn">
-                🇷🇺 Россия (+7) ▼
+                🌍 Определение... ▼
             </button>
         </div>
         <p style="color:#8e9aa6;">Введите номер и пароль</p>
@@ -411,6 +416,10 @@
                     <h4>Статистика</h4>
                     <p id="statsSubscribers">Подписчиков ваших каналов: 0</p>
                 </div>
+                <div class="setting-item">
+                    <h4>Управление аккаунтом</h4>
+                    <button id="deleteAccountBtn" class="danger-btn" style="padding:10px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Удалить аккаунт</button>
+                </div>
             </div>
             <div class="channel-actions" id="channelActions" style="display:none;">
                 <button id="createChannelBtn">➕ Создать канал</button>
@@ -422,6 +431,7 @@
                 <div class="chat-header-info">
                     <span class="chat-header-title" id="chatHeaderTitle"></span>
                     <span class="chat-header-subtitle" id="chatHeaderSubtitle"></span>
+                    <span class="typing-indicator" id="typingIndicator"></span>
                 </div>
                 <div class="chat-header-actions" id="chatHeaderActions"></div>
             </div>
@@ -520,6 +530,22 @@
         </div>
     </div>
 
+    <!-- Модальное окно выбора реакции -->
+    <div class="modal" id="reactionPickerModal">
+        <div class="modal-content" style="width:300px;">
+            <h3>Выберите реакцию</h3>
+            <div style="display:flex;justify-content:space-around;padding:10px;">
+                <button class="reaction-option" data-reaction="❤️" style="font-size:30px;background:none;border:none;">❤️</button>
+                <button class="reaction-option" data-reaction="👍" style="font-size:30px;background:none;border:none;">👍</button>
+                <button class="reaction-option" data-reaction="😂" style="font-size:30px;background:none;border:none;">😂</button>
+                <button class="reaction-option" data-reaction="😮" style="font-size:30px;background:none;border:none;">😮</button>
+                <button class="reaction-option" data-reaction="😢" style="font-size:30px;background:none;border:none;">😢</button>
+                <button class="reaction-option" data-reaction="😡" style="font-size:30px;background:none;border:none;">😡</button>
+            </div>
+            <button id="closeReactionPicker" style="margin-top:10px;padding:8px;background:#f44336;color:#fff;border:none;border-radius:20px;">Отмена</button>
+        </div>
+    </div>
+
     <!-- Модальное окно выбора стиля -->
     <div class="modal" id="styleModal">
         <div class="modal-content">
@@ -548,10 +574,17 @@
     let currentContactId = 'bot';
     let currentMode = 'chats';
     let unsubscribeMessages = null;
-    let unsubscribeChannel = null;
+    let unsubscribeTyping = null;
+    let unsubscribePresence = null;
     let activeTimers = {};
     let resetCode = null;
     let editMessageId = null;
+    let replyToMessage = null; // сообщение, на которое отвечаем
+    let typingTimeout = null;
+    let isLoadingMessages = false;
+    let hasMoreMessages = true;
+    const messagesLimit = 30;
+    let messagesOffset = 0;
 
     let notificationPermission = false;
     if ('Notification' in window && Notification.permission === 'granted') notificationPermission = true;
@@ -599,6 +632,7 @@
     const showAllChannelsBtn = document.getElementById('showAllChannelsBtn');
     const chatHeaderTitle = document.getElementById('chatHeaderTitle');
     const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
+    const typingIndicator = document.getElementById('typingIndicator');
     const chatHeaderActions = document.getElementById('chatHeaderActions');
     const messagesContainer = document.getElementById('messagesContainer');
     const messageInput = document.getElementById('messageInput');
@@ -647,8 +681,9 @@
     const editMessageText = document.getElementById('editMessageText');
     const saveEditBtn = document.getElementById('saveEditBtn');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
 
-    // Новые элементы для стран и стилей
+    // Новые элементы для стран, реакций, стилей
     const openSettingsBtn = document.getElementById('openSettingsBtn');
     const openSettingsAppBtn = document.getElementById('openSettingsAppBtn');
     const styleModal = document.getElementById('styleModal');
@@ -659,6 +694,10 @@
     const countryModal = document.getElementById('countryModal');
     const countryList = document.getElementById('countryList');
     const closeCountryModal = document.getElementById('closeCountryModal');
+    const reactionPickerModal = document.getElementById('reactionPickerModal');
+    const closeReactionPicker = document.getElementById('closeReactionPicker');
+    const reactionOptions = document.querySelectorAll('.reaction-option');
+    let currentReactionMsg = null; // сообщение для реакции
 
     // Массив стран
     const countries = [
@@ -709,6 +748,23 @@
         countryModal.style.display = 'none';
     };
     populateCountryList();
+
+    // Автоопределение страны по IP
+    fetch('https://ipapi.co/json/')
+        .then(res => res.json())
+        .then(data => {
+            const countryCode = data.country_code;
+            if (countryCode === 'RU') currentCountry = countries[0];
+            else if (countryCode === 'BY') currentCountry = countries[1];
+            else if (countryCode === 'UA') currentCountry = countries[2];
+            else if (countryCode === 'US') currentCountry = countries[3];
+            else if (countryCode === 'KZ') currentCountry = countries[4];
+            updateCountryButton();
+        })
+        .catch(() => {
+            // если не удалось определить, оставляем Россию
+            updateCountryButton();
+        });
 
     // Эмодзи-пикер
     const emojis = ['😊','😂','❤️','👍','🔥','😢','🎉','😍','🤔','👌','🙏','💯','⭐','🍕','⚽','🏀','🎵','📚','✈️','🏠'];
@@ -772,6 +828,24 @@
         }
     }
 
+    // Функция обновления статуса онлайн (last_seen)
+    async function updateLastSeen() {
+        if (!currentUser) return;
+        await supabaseClient
+            .from('users')
+            .update({ last_seen: new Date().toISOString() })
+            .eq('phone', currentUser.phone);
+    }
+
+    // Запускаем обновление каждые 30 секунд и при любом действии
+    function startPresenceUpdates() {
+        updateLastSeen();
+        setInterval(updateLastSeen, 30000);
+        document.addEventListener('click', updateLastSeen);
+        document.addEventListener('scroll', updateLastSeen);
+        document.addEventListener('keydown', updateLastSeen);
+    }
+
     // ---------- Вход / регистрация через Supabase ----------
     function updateLoginButtonState() {
         let phoneValid = validatePhone(phoneInput.value);
@@ -821,7 +895,8 @@
                     avatar: null,
                     badges: { blue: false, red: false },
                     premiumUntil: null,
-                    friends: { list: [], incoming: [], outgoing: [] }
+                    friends: { list: [], incoming: [], outgoing: [] },
+                    last_seen: new Date().toISOString()
                 };
                 let { error } = await supabaseClient
                     .from('users')
@@ -841,7 +916,7 @@
                         sender: 'bot',
                         text: 'Добро пожаловать в VoxChat! Я бот с синей галочкой. Здесь есть чаты, каналы, галочки и многое другое. Изучайте!',
                         time: new Date().toISOString(),
-                        reactions: 0,
+                        reactions: {},
                         reacted_by: []
                     }]);
             };
@@ -856,6 +931,7 @@
         updatePremiumUI();
         loginScreen.style.display = 'none';
         app.style.display = 'flex';
+        startPresenceUpdates();
         initMode('chats');
         initSpeech();
         loadProfileToForm();
@@ -876,6 +952,10 @@
         if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
             unsubscribeMessages();
             unsubscribeMessages = null;
+        }
+        if (unsubscribeTyping && typeof unsubscribeTyping === 'function') {
+            unsubscribeTyping();
+            unsubscribeTyping = null;
         }
         document.getElementById('debugInfo').innerHTML = '';
     });
@@ -944,10 +1024,58 @@
 
     // ---------- Галочки (убрана возможность покупки) ----------
     // Функции requestRedBadgeProfile и requestRedBadgeChannel больше не нужны
-
     function updateStats() {
         statsSubscribers.textContent = 'Подписчиков ваших каналов: 0';
     }
+
+    // ---------- Удаление аккаунта ----------
+    deleteAccountBtn.addEventListener('click', async () => {
+        if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
+        // Удаляем все сообщения, где пользователь отправитель
+        await supabaseClient
+            .from('messages')
+            .delete()
+            .eq('sender', currentUser.phone);
+        // Удаляем каналы, созданные пользователем
+        await supabaseClient
+            .from('channels')
+            .delete()
+            .eq('createdBy', currentUser.phone);
+        // Удаляем пользователя из списков друзей у других пользователей
+        let { data: allUsers } = await supabaseClient
+            .from('users')
+            .select('phone, friends');
+        for (let u of allUsers) {
+            if (u.friends) {
+                let changed = false;
+                if (u.friends.list.includes(currentUser.phone)) {
+                    u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
+                    changed = true;
+                }
+                if (u.friends.incoming.includes(currentUser.phone)) {
+                    u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
+                    changed = true;
+                }
+                if (u.friends.outgoing.includes(currentUser.phone)) {
+                    u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
+                    changed = true;
+                }
+                if (changed) {
+                    await supabaseClient
+                        .from('users')
+                        .update({ friends: u.friends })
+                        .eq('phone', u.phone);
+                }
+            }
+        }
+        // Наконец, удаляем самого пользователя
+        await supabaseClient
+            .from('users')
+            .delete()
+            .eq('phone', currentUser.phone);
+        alert('Аккаунт удалён. До свидания!');
+        logoutBtn.click();
+    });
 
     // ---------- Переключение режимов ----------
     function initMode(mode) {
@@ -1002,7 +1130,7 @@
     profileModeBtn.onclick = ()=> initMode('profile');
     settingsModeBtn.onclick = ()=> initMode('settings');
 
-    // ---------- Контакты (список для чатов) ----------
+    // ---------- Контакты (список для чатов) с отображением онлайн статуса ----------
     async function renderContacts() {
         contactsListEl.innerHTML = '';
         // Бот с синей галочкой
@@ -1032,11 +1160,16 @@
                     let badges = '';
                     if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
                     if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
+                    let status = 'онлайн';
+                    if (friend.last_seen) {
+                        let diff = Date.now() - new Date(friend.last_seen).getTime();
+                        if (diff > 120000) status = 'был(а) недавно';
+                    }
                     div.innerHTML = `
                         <div class="contact-avatar">${avatar}</div>
                         <div class="contact-info">
                             <div class="contact-name">${friend.name || friend.username || friendPhone} ${badges}</div>
-                            <div class="contact-status">онлайн</div>
+                            <div class="contact-status">${status}</div>
                         </div>
                     `;
                     div.onclick = ()=> switchContact(friendPhone);
@@ -1051,17 +1184,25 @@
             unsubscribeMessages();
             unsubscribeMessages = null;
         }
+        if (unsubscribeTyping && typeof unsubscribeTyping === 'function') {
+            unsubscribeTyping();
+            unsubscribeTyping = null;
+        }
         currentContactId = id;
         renderContacts();
+        messagesOffset = 0;
+        hasMoreMessages = true;
 
         if (id === 'bot') {
             chatHeaderTitle.innerHTML = 'VoxChat <span class="verified blue">✓</span>';
             chatHeaderSubtitle.textContent = '';
+            typingIndicator.textContent = '';
             subscribeToMessages('bot');
+            subscribeToTyping('bot');
         } else {
             supabaseClient
                 .from('users')
-                .select('name, username, badges')
+                .select('name, username, badges, last_seen')
                 .eq('phone', id)
                 .single()
                 .then(({ data: friend }) => {
@@ -1070,10 +1211,17 @@
                         if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
                         if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
                         chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
+                        let status = 'онлайн';
+                        if (friend.last_seen) {
+                            let diff = Date.now() - new Date(friend.last_seen).getTime();
+                            if (diff > 120000) status = 'был(а) недавно';
+                        }
+                        chatHeaderSubtitle.textContent = status;
                     }
                 });
-            chatHeaderSubtitle.textContent = '';
+            typingIndicator.textContent = '';
             subscribeToMessages(id);
+            subscribeToTyping(id);
         }
         chatHeaderActions.innerHTML = '';
         chatInput.style.display = 'flex';
@@ -1081,7 +1229,41 @@
         sendButton.disabled = false;
     }
 
-    // ---------- Сообщения (подписка в реальном времени) ----------
+    // ---------- Индикатор печатания ----------
+    function subscribeToTyping(contactId) {
+        let chatId = getChatId(contactId);
+        unsubscribeTyping = supabaseClient
+            .channel('typing-channel')
+            .on(
+                'broadcast',
+                { event: 'typing' },
+                (payload) => {
+                    if (payload.payload.sender !== currentUser.phone) {
+                        typingIndicator.textContent = 'печатает...';
+                        clearTimeout(activeTimers.typing);
+                        activeTimers.typing = setTimeout(() => {
+                            typingIndicator.textContent = '';
+                        }, 3000);
+                    }
+                }
+            )
+            .subscribe();
+    }
+
+    function sendTyping() {
+        if (!currentUser || !currentContactId) return;
+        supabaseClient.channel('typing-channel').send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { sender: currentUser.phone }
+        });
+    }
+
+    messageInput.addEventListener('input', () => {
+        sendTyping();
+    });
+
+    // ---------- Сообщения (подписка в реальном времени с пагинацией) ----------
     function getChatId(contactId) {
         if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
@@ -1090,18 +1272,47 @@
         return `private_${[currentUser.phone, contactId].sort().join('_')}`;
     }
 
-    function subscribeToMessages(contactId) {
-        let chatId = getChatId(contactId);
-        console.log('📡 Подписка на чат:', chatId);
-        supabaseClient
+    async function loadMessages(chatId, loadMore = false) {
+        if (isLoadingMessages) return;
+        isLoadingMessages = true;
+        if (!loadMore) {
+            messagesOffset = 0;
+            messagesContainer.innerHTML = '';
+        }
+        let query = supabaseClient
             .from('messages')
             .select('*')
             .eq('chat_id', chatId)
-            .order('time', { ascending: true })
-            .then(({ data: msgs }) => {
-                console.log('📜 Загружена история:', msgs);
-                renderMessages(msgs || []);
+            .order('time', { ascending: false })
+            .range(messagesOffset, messagesOffset + messagesLimit - 1);
+        let { data: msgs, error } = await query;
+        if (error) {
+            console.error(error);
+            isLoadingMessages = false;
+            return;
+        }
+        if (msgs.length < messagesLimit) hasMoreMessages = false;
+        msgs.reverse(); // для правильного порядка (сначала старые, потом новые)
+        if (loadMore) {
+            // вставляем в начало
+            msgs.forEach(m => {
+                m.isMe = (m.sender === currentUser.phone);
+                prependMessage(m);
             });
+        } else {
+            msgs.forEach(m => {
+                m.isMe = (m.sender === currentUser.phone);
+                appendMessage(m);
+            });
+        }
+        messagesOffset += msgs.length;
+        isLoadingMessages = false;
+    }
+
+    function subscribeToMessages(contactId) {
+        let chatId = getChatId(contactId);
+        console.log('📡 Подписка на чат:', chatId);
+        loadMessages(chatId, false);
 
         if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
             unsubscribeMessages();
@@ -1130,19 +1341,80 @@
             });
     }
 
-    function renderMessages(msgs) {
-        messagesContainer.innerHTML = '';
-        msgs.forEach(msg => {
-            msg.isMe = (msg.sender === currentUser.phone);
-            appendMessage(msg);
-        });
-    }
-
     function appendMessage(msg) {
-        console.log('💬 Отображение сообщения:', msg);
         let w = document.createElement('div');
         w.className = 'message-wrapper';
+        w.dataset.id = msg.id;
         w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+        if (msg.reply_to) {
+            // можно показать цитату
+            let replyDiv = document.createElement('div');
+            replyDiv.style.fontSize = '12px';
+            replyDiv.style.opacity = '0.7';
+            replyDiv.textContent = '↩️ ответ на сообщение';
+            w.appendChild(replyDiv);
+        }
+        let md = document.createElement('div');
+        md.className = `message ${msg.isMe ? 'own' : ''}`;
+        if (msg.image) {
+            let img = document.createElement('img');
+            img.src = msg.image;
+            img.onclick = () => window.open(msg.image);
+            md.appendChild(img);
+        } else {
+            md.textContent = msg.text;
+        }
+        let t = document.createElement('div');
+        t.className = 'message-time';
+        t.textContent = new Date(msg.time).toLocaleTimeString();
+        let f = document.createElement('div');
+        f.className = 'message-footer';
+
+        // Кнопка реакций
+        let r = document.createElement('button');
+        r.className = 'reaction-btn';
+        let reactions = msg.reactions || {};
+        let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
+        r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
+        r.onclick = (e) => {
+            e.stopPropagation();
+            currentReactionMsg = msg;
+            reactionPickerModal.style.display = 'flex';
+        };
+        f.appendChild(r);
+
+        // Кнопка ответа
+        let replyBtn = document.createElement('button');
+        replyBtn.className = 'reply-btn';
+        replyBtn.innerHTML = '↩️';
+        replyBtn.onclick = (e) => {
+            e.stopPropagation();
+            replyToMessage = msg;
+            messageInput.placeholder = `Ответ на ${msg.sender === currentUser.phone ? 'своё сообщение' : 'сообщение'}`;
+        };
+        f.appendChild(replyBtn);
+
+        // Для каналов: кнопки редактирования/удаления для создателя (опущено для краткости, но можно добавить аналогично)
+
+        w.appendChild(md);
+        w.appendChild(t);
+        w.appendChild(f);
+        messagesContainer.appendChild(w);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function prependMessage(msg) {
+        let w = document.createElement('div');
+        w.className = 'message-wrapper';
+        w.dataset.id = msg.id;
+        w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+        if (msg.reply_to) {
+            let replyDiv = document.createElement('div');
+            replyDiv.style.fontSize = '12px';
+            replyDiv.style.opacity = '0.7';
+            replyDiv.textContent = '↩️ ответ на сообщение';
+            w.appendChild(replyDiv);
+        }
         let md = document.createElement('div');
         md.className = `message ${msg.isMe ? 'own' : ''}`;
         if (msg.image) {
@@ -1160,113 +1432,88 @@
         f.className = 'message-footer';
 
         let r = document.createElement('button');
-        r.className = `reaction-btn ${msg.reactions > 0 ? 'active' : ''}`;
-        r.innerHTML = `❤️ <span>${msg.reactions || 0}</span>`;
-        r.onclick = async (e) => {
+        r.className = 'reaction-btn';
+        let reactions = msg.reactions || {};
+        let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
+        r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
+        r.onclick = (e) => {
             e.stopPropagation();
-            let reactedBy = msg.reacted_by || [];
-            if (!reactedBy.includes(currentUser.phone)) {
-                reactedBy.push(currentUser.phone);
-                let newReactions = (msg.reactions || 0) + 1;
-                await supabaseClient
-                    .from('messages')
-                    .update({ reactions: newReactions, reacted_by: reactedBy })
-                    .eq('id', msg.id);
-            }
+            currentReactionMsg = msg;
+            reactionPickerModal.style.display = 'flex';
         };
         f.appendChild(r);
+
+        let replyBtn = document.createElement('button');
+        replyBtn.className = 'reply-btn';
+        replyBtn.innerHTML = '↩️';
+        replyBtn.onclick = (e) => {
+            e.stopPropagation();
+            replyToMessage = msg;
+            messageInput.placeholder = `Ответ на ${msg.sender === currentUser.phone ? 'своё сообщение' : 'сообщение'}`;
+        };
+        f.appendChild(replyBtn);
 
         w.appendChild(md);
         w.appendChild(t);
         w.appendChild(f);
-        messagesContainer.appendChild(w);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        messagesContainer.insertBefore(w, messagesContainer.firstChild);
     }
 
-    // ---------- Отправка сообщения ----------
+    // ---------- Выбор реакции ----------
+    reactionOptions.forEach(btn => {
+        btn.onclick = async () => {
+            let reaction = btn.dataset.reaction;
+            if (!currentReactionMsg) return;
+            let msg = currentReactionMsg;
+            let reactions = msg.reactions || {};
+            reactions[reaction] = (reactions[reaction] || 0) + 1;
+            await supabaseClient
+                .from('messages')
+                .update({ reactions: reactions })
+                .eq('id', msg.id);
+            reactionPickerModal.style.display = 'none';
+            currentReactionMsg = null;
+        };
+    });
+    closeReactionPicker.onclick = () => {
+        reactionPickerModal.style.display = 'none';
+        currentReactionMsg = null;
+    };
+
+    // ---------- Отправка сообщения с поддержкой ответа ----------
     sendButton.onclick = async ()=> {
         let text = messageInput.value.trim();
         if (!text || !currentUser) return;
         let chatId = getChatId(currentContactId);
+        let msgObj = {
+            chat_id: chatId,
+            sender: currentUser.phone,
+            text: text,
+            time: new Date().toISOString(),
+            reactions: {},
+            reacted_by: []
+        };
+        if (replyToMessage) {
+            msgObj.reply_to = replyToMessage.id;
+        }
         console.log('📤 Отправка в чат:', chatId, 'текст:', text);
         await supabaseClient
             .from('messages')
-            .insert([{
-                chat_id: chatId,
-                sender: currentUser.phone,
-                text: text,
-                time: new Date().toISOString(),
-                reactions: 0,
-                reacted_by: []
-            }]);
+            .insert([msgObj]);
         messageInput.value = '';
+        replyToMessage = null;
+        messageInput.placeholder = 'Сообщение...';
     };
     messageInput.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); sendButton.click(); } };
 
-    attachButton.onclick = ()=> fileInput.click();
-    fileInput.onchange = function(e) {
-        let f = e.target.files[0];
-        if (f) {
-            let r = new FileReader();
-            r.onload = async ev => {
-                let chatId = getChatId(currentContactId);
-                await supabaseClient
-                    .from('messages')
-                    .insert([{
-                        chat_id: chatId,
-                        sender: currentUser.phone,
-                        image: ev.target.result,
-                        time: new Date().toISOString(),
-                        reactions: 0,
-                        reacted_by: []
-                    }]);
-            };
-            r.readAsDataURL(f);
+    // ---------- Прокрутка для пагинации ----------
+    messagesContainer.addEventListener('scroll', () => {
+        if (messagesContainer.scrollTop === 0 && hasMoreMessages && !isLoadingMessages) {
+            loadMessages(getChatId(currentContactId), true);
         }
-        fileInput.value = '';
-    };
+    });
 
-    emojiButton.onclick = ()=> emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
-
-    // ---------- Голосовой ввод ----------
-    function initSpeech() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            micButton.style.display = 'none';
-            return;
-        }
-        let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let rec = new SR();
-        rec.lang = 'ru-RU';
-        rec.interimResults = false;
-        micButton.onclick = ()=> {
-            micButton.style.backgroundColor = '#f44336';
-            rec.start();
-        };
-        rec.onresult = e => {
-            messageInput.value = e.results[0][0].transcript;
-            micButton.style.backgroundColor = '';
-        };
-        rec.onerror = ()=> micButton.style.backgroundColor = '';
-        rec.onend = ()=> micButton.style.backgroundColor = '';
-    }
-
-    // ---------- Тема ----------
-    themeToggle.onclick = ()=> {
-        let b = document.body;
-        b.classList.toggle('light');
-        b.classList.toggle('dark');
-        themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
-    };
-
-    function clearChatArea() {
-        chatHeaderTitle.textContent = 'Выберите чат';
-        chatHeaderSubtitle.textContent = '';
-        chatHeaderActions.innerHTML = '';
-        messagesContainer.innerHTML = '';
-        chatInput.style.display = 'none';
-    }
-
-    // ---------- Каналы ----------
+    // ---------- Каналы (адаптированы с учётом галочек) ----------
     async function renderChannelsList() {
         let { data: channels } = await supabaseClient
             .from('channels')
@@ -1341,7 +1588,7 @@
         }
     }
 
-    // ---------- Друзья ----------
+    // ---------- Друзья (полная реализация, с учётом last_seen и галочек) ----------
     function renderFriendsView() {
         ensureFriends(currentUser);
         friendsView.innerHTML = '';
@@ -1382,11 +1629,16 @@
                             let badges = '';
                             if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
                             if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
+                            let status = 'онлайн';
+                            if (friend.last_seen) {
+                                let diff = Date.now() - new Date(friend.last_seen).getTime();
+                                if (diff > 120000) status = 'был(а) недавно';
+                            }
                             div.innerHTML = `
                                 <div class="friend-avatar">${friend.avatar ? `<img src="${friend.avatar}">` : '👤'}</div>
                                 <div class="friend-info">
                                     <div class="friend-name">${friend.name || friend.username || phone} ${badges}</div>
-                                    <div class="friend-status">@${friend.username || 'нет'}</div>
+                                    <div class="friend-status">${status}</div>
                                 </div>
                                 <button class="msg-btn" style="padding:5px 10px;background:#3390ec;border:none;border-radius:12px;color:#fff;">💬</button>
                             `;
@@ -1419,10 +1671,13 @@
                         if (user) {
                             let div = document.createElement('div');
                             div.className = 'friend-item';
+                            let badges = '';
+                            if (user.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                            if (user.badges?.red) badges += '<span class="verified red">✓</span>';
                             div.innerHTML = `
                                 <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
                                 <div class="friend-info">
-                                    <div class="friend-name">${user.name || user.username || phone}</div>
+                                    <div class="friend-name">${user.name || user.username || phone} ${badges}</div>
                                     <div class="friend-status">@${user.username || 'нет'}</div>
                                 </div>
                                 <div style="display:flex;gap:5px;">
@@ -1768,6 +2023,44 @@
         allChannelsModal.style.display = 'flex';
     };
     closeAllChannelsModal.onclick = ()=> allChannelsModal.style.display = 'none';
+
+    // ---------- Голосовой ввод ----------
+    function initSpeech() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            micButton.style.display = 'none';
+            return;
+        }
+        let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let rec = new SR();
+        rec.lang = 'ru-RU';
+        rec.interimResults = false;
+        micButton.onclick = ()=> {
+            micButton.style.backgroundColor = '#f44336';
+            rec.start();
+        };
+        rec.onresult = e => {
+            messageInput.value = e.results[0][0].transcript;
+            micButton.style.backgroundColor = '';
+        };
+        rec.onerror = ()=> micButton.style.backgroundColor = '';
+        rec.onend = ()=> micButton.style.backgroundColor = '';
+    }
+
+    // ---------- Тема ----------
+    themeToggle.onclick = ()=> {
+        let b = document.body;
+        b.classList.toggle('light');
+        b.classList.toggle('dark');
+        themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
+    };
+
+    function clearChatArea() {
+        chatHeaderTitle.textContent = 'Выберите чат';
+        chatHeaderSubtitle.textContent = '';
+        chatHeaderActions.innerHTML = '';
+        messagesContainer.innerHTML = '';
+        chatInput.style.display = 'none';
+    }
 
     // Инициализация
     phoneInput.value = '+7';
