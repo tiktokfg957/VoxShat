@@ -364,7 +364,7 @@
         </div>
     </div>
 
-    <!-- Основное приложение (то же, что и раньше) -->
+    <!-- Основное приложение -->
     <div class="app" id="app">
         <div class="sidebar">
             <div class="header">
@@ -403,14 +403,9 @@
             <div class="settings-view" id="settingsView" style="display:none;">
                 <div class="setting-item">
                     <h4>Галочки верификации</h4>
-                    <p>🔵 Синяя — для официальных аккаунтов (не продаётся)</p>
-                    <p>🟣 Фиолетовая — для каналов с 50k+ подписчиков (автоматически)</p>
-                    <p>🔴 Красная — платная (500 баллов)</p>
-                    <div class="badge-request">
-                        <span>Запросить красную галочку для:</span>
-                        <button id="requestRedBadgeProfile">Профиль</button>
-                        <button id="requestRedBadgeChannel">Канал (текущий)</button>
-                    </div>
+                    <p>✅ Синяя — для официальных аккаунтов (не продаётся)</p>
+                    <p>✅ Фиолетовая — для каналов с 50k+ подписчиков (автоматически)</p>
+                    <p>✅ Красная — для премиум-пользователей</p>
                 </div>
                 <div class="setting-item">
                     <h4>Статистика</h4>
@@ -947,25 +942,9 @@
         });
     });
 
-    // ---------- Галочки ----------
-    requestRedBadgeProfile.onclick = async ()=> {
-        if (confirm('Купить красную галочку для профиля за 500 баллов?')) {
-            currentUser.badges.red = true;
-            await supabaseClient
-                .from('users')
-                .update({ badges: currentUser.badges })
-                .eq('phone', currentUser.phone);
-            alert('Галочка активирована');
-            renderContacts();
-        }
-    };
-    requestRedBadgeChannel.onclick = async ()=> {
-        if (currentContactId && currentContactId.startsWith('channel_')) {
-            alert('Функция в разработке');
-        } else {
-            alert('Сначала откройте канал');
-        }
-    };
+    // ---------- Галочки (убрана возможность покупки) ----------
+    // Функции requestRedBadgeProfile и requestRedBadgeChannel больше не нужны
+
     function updateStats() {
         statsSubscribers.textContent = 'Подписчиков ваших каналов: 0';
     }
@@ -1026,13 +1005,13 @@
     // ---------- Контакты (список для чатов) ----------
     async function renderContacts() {
         contactsListEl.innerHTML = '';
-        // Бот
+        // Бот с синей галочкой
         let botDiv = document.createElement('div');
         botDiv.className = `contact ${currentContactId === 'bot' ? 'active' : ''}`;
         botDiv.innerHTML = `
             <div class="contact-avatar">🤖</div>
             <div class="contact-info">
-                <div class="contact-name">VoxChat <span class="verified blue">🔵</span></div>
+                <div class="contact-name">VoxChat <span class="verified blue">✓</span></div>
                 <div class="contact-status">онлайн</div>
             </div>
         `;
@@ -1050,10 +1029,13 @@
                     let div = document.createElement('div');
                     div.className = `contact ${currentContactId === friendPhone ? 'active' : ''}`;
                     let avatar = friend.avatar ? `<img src="${friend.avatar}">` : '👤';
+                    let badges = '';
+                    if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                    if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
                     div.innerHTML = `
                         <div class="contact-avatar">${avatar}</div>
                         <div class="contact-info">
-                            <div class="contact-name">${friend.name || friend.username || friendPhone}</div>
+                            <div class="contact-name">${friend.name || friend.username || friendPhone} ${badges}</div>
                             <div class="contact-status">онлайн</div>
                         </div>
                     `;
@@ -1073,7 +1055,7 @@
         renderContacts();
 
         if (id === 'bot') {
-            chatHeaderTitle.innerHTML = 'VoxChat <span class="verified blue">🔵</span>';
+            chatHeaderTitle.innerHTML = 'VoxChat <span class="verified blue">✓</span>';
             chatHeaderSubtitle.textContent = '';
             subscribeToMessages('bot');
         } else {
@@ -1084,7 +1066,10 @@
                 .single()
                 .then(({ data: friend }) => {
                     if (friend) {
-                        chatHeaderTitle.innerHTML = `${friend.name || friend.username || id}`;
+                        let badges = '';
+                        if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                        if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
+                        chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
                     }
                 });
             chatHeaderSubtitle.textContent = '';
@@ -1295,10 +1280,13 @@
         subscribedChannels.forEach(ch => {
             let div = document.createElement('div');
             div.className = `channel-item ${ch.id === currentContactId ? 'active' : ''}`;
+            let badges = '';
+            if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
+            if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
             div.innerHTML = `
                 <div class="channel-avatar">${ch.avatar ? `<img src="${ch.avatar}">` : '📢'}</div>
                 <div class="channel-info">
-                    <div class="channel-name">${ch.name}</div>
+                    <div class="channel-name">${ch.name} ${badges}</div>
                     <div class="channel-subscribers">${ch.subscribers ? ch.subscribers.length : 0} подписчиков</div>
                 </div>
             `;
@@ -1321,7 +1309,10 @@
             .eq('id', chId)
             .single();
         if (!ch) return;
-        chatHeaderTitle.innerHTML = ch.name;
+        let badges = '';
+        if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
+        if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
+        chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
         chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
         chatHeaderActions.innerHTML = '';
         let isAdmin = ch.createdBy === currentUser.phone;
@@ -1388,10 +1379,13 @@
                         if (friend) {
                             let div = document.createElement('div');
                             div.className = 'friend-item';
+                            let badges = '';
+                            if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                            if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
                             div.innerHTML = `
                                 <div class="friend-avatar">${friend.avatar ? `<img src="${friend.avatar}">` : '👤'}</div>
                                 <div class="friend-info">
-                                    <div class="friend-name">${friend.name || friend.username || phone}</div>
+                                    <div class="friend-name">${friend.name || friend.username || phone} ${badges}</div>
                                     <div class="friend-status">@${friend.username || 'нет'}</div>
                                 </div>
                                 <button class="msg-btn" style="padding:5px 10px;background:#3390ec;border:none;border-radius:12px;color:#fff;">💬</button>
@@ -1537,12 +1531,14 @@
         let modal = document.createElement('div');
         modal.className = 'modal';
         modal.style.display = 'flex';
+        let badges = '';
+        if (user.badges?.blue) badges += '<span class="verified blue">✓</span>';
+        if (user.badges?.red) badges += '<span class="verified red">✓</span>';
         modal.innerHTML = `
             <div class="modal-content" style="width:300px;">
                 <div class="profile-avatar" style="margin:10px auto;">${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;">` : '👤'}</div>
-                <h3>${user.name || user.username || user.phone}</h3>
+                <h3>${user.name || user.username || user.phone} ${badges}</h3>
                 <p>@${user.username || 'нет'}</p>
-                <p>${user.badges?.blue ? '🔵' : ''} ${user.badges?.red ? '🔴' : ''}</p>
                 <button id="sendFriendRequestFromProfileBtn" style="padding:10px;background:#3390ec;color:#fff;border:none;border-radius:20px;width:100%;margin-top:10px;">Отправить заявку</button>
                 <button id="sendMessageFromProfileBtn" style="padding:10px;background:#4caf50;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Отправить сообщение</button>
                 <button id="closeProfileModalBtn" style="padding:10px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Закрыть</button>
