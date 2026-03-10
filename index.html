@@ -1508,7 +1508,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });        // ---------- Переключение режимов ----------
+    });            // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -2062,6 +2062,7 @@
             .from('channels')
             .select('*');
         allChannelsData = channels || [];
+        // Фильтруем только каналы, в которых пользователь подписан
         let filtered = channels ? channels.filter(ch => 
             ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
             (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -2091,9 +2092,68 @@
         });
     }
 
-    channelSearchInput.addEventListener('input', (e) => {
-        renderChannelsList(e.target.value);
-    });
+    // Поиск по каналам (локальный) – убираем поле поиска, оставляем только кнопку "Все каналы"
+    // Удаляем старый инпут, если он есть
+    if (channelSearchInput) {
+        channelSearchInput.style.display = 'none';
+    }
+
+    // Создаём кнопку "Все каналы" в channelActions, если её нет
+    let allChannelsBtn = document.getElementById('showAllChannelsBtn');
+    if (!allChannelsBtn) {
+        allChannelsBtn = document.createElement('button');
+        allChannelsBtn.id = 'showAllChannelsBtn';
+        allChannelsBtn.textContent = '📢 Все каналы';
+        allChannelsBtn.style.margin = '10px';
+        allChannelsBtn.style.padding = '10px';
+        allChannelsBtn.style.width = 'calc(100% - 20px)';
+        allChannelsBtn.style.border = 'none';
+        allChannelsBtn.style.borderRadius = '20px';
+        allChannelsBtn.style.background = '#2b5278';
+        allChannelsBtn.style.color = '#fff';
+        allChannelsBtn.style.cursor = 'pointer';
+        channelActions.appendChild(allChannelsBtn);
+    }
+
+    allChannelsBtn.onclick = async () => {
+        let { data: allChannels } = await supabaseClient
+            .from('channels')
+            .select('*');
+        allChannelsList.innerHTML = '';
+        (allChannels || []).forEach(ch => {
+            let div = document.createElement('div');
+            div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
+            let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
+            div.innerHTML = `
+                <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
+                <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
+            `;
+            let btn = document.createElement('button');
+            btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
+            btn.disabled = isSub;
+            btn.onclick = async ()=>{
+                if (!isSub) {
+                    if (!ch.subscribers) ch.subscribers = [];
+                    ch.subscribers.push(currentUser.phone);
+                    await supabaseClient
+                        .from('channels')
+                        .update({ subscribers: ch.subscribers })
+                        .eq('id', ch.id);
+                    btn.disabled = true;
+                    btn.textContent = '✓ Подписан';
+                    renderChannelsList();
+                }
+            };
+            div.appendChild(btn);
+            allChannelsList.appendChild(div);
+        });
+        allChannelsModal.style.display = 'flex';
+    };
+
+    // Исправляем кнопку закрытия модалки
+    closeAllChannelsModal.onclick = () => {
+        allChannelsModal.style.display = 'none';
+    };
 
     async function switchChannelView(chId) {
         if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
@@ -2102,7 +2162,7 @@
         }
         currentContactId = String(chId);
         console.log('📢 Переключение на канал, chId =', chId);
-        renderChannelsList(channelSearchInput.value);
+        renderChannelsList();
         let { data: ch } = await supabaseClient
             .from('channels')
             .select('*')
@@ -2137,6 +2197,8 @@
             settingsBtn.onclick = () => {
                 channelSettingsName.value = ch.name;
                 channelSettingsUsername.value = ch.username || '';
+                // Добавляем кнопку удаления канала, если её нет в модалке (проверим позже)
+                // Временно просто открываем модалку
                 channelSettingsModal.style.display = 'flex';
                 window.currentChannelForSettings = ch.id;
             };
@@ -2196,6 +2258,46 @@
         channelSettingsModal.style.display = 'none';
     };
 
+    // Добавляем кнопку удаления канала в модалку настроек
+    // Для этого нужно динамически добавить кнопку в modal-content, если её нет
+    // Но проще добавить её сразу в HTML, но мы можем добавить и скриптом.
+    // Проверим, есть ли уже кнопка удаления. Если нет – создадим.
+    let deleteChannelBtn = document.getElementById('deleteChannelBtn');
+    if (!deleteChannelBtn) {
+        deleteChannelBtn = document.createElement('button');
+        deleteChannelBtn.id = 'deleteChannelBtn';
+        deleteChannelBtn.textContent = '🗑️ Удалить канал';
+        deleteChannelBtn.style.padding = '10px';
+        deleteChannelBtn.style.margin = '5px';
+        deleteChannelBtn.style.background = '#f44336';
+        deleteChannelBtn.style.color = '#fff';
+        deleteChannelBtn.style.border = 'none';
+        deleteChannelBtn.style.borderRadius = '20px';
+        deleteChannelBtn.style.cursor = 'pointer';
+        deleteChannelBtn.style.width = '100%';
+        // Вставляем после кнопок сохранения/отмены
+        let modalContent = channelSettingsModal.querySelector('.modal-content');
+        modalContent.appendChild(deleteChannelBtn);
+    }
+
+    deleteChannelBtn.onclick = async () => {
+        let chId = window.currentChannelForSettings;
+        if (!chId) return;
+        if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
+        // Удаляем канал из БД
+        let { error } = await supabaseClient
+            .from('channels')
+            .delete()
+            .eq('id', chId);
+        if (error) {
+            alert('Ошибка при удалении канала: ' + error.message);
+            return;
+        }
+        channelSettingsModal.style.display = 'none';
+        // Переключаемся на список каналов
+        initMode('channels');
+    };
+
     // Создание канала
     createChannelBtn.onclick = ()=> createChannelModal.style.display = 'flex';
     confirmCreateChannel.onclick = async ()=> {
@@ -2243,59 +2345,6 @@
         createChannelModal.style.display = 'none';
         channelNameInput.value = '';
         channelUsernameInput.value = '';
-    };
-
-    // ---------- Поиск всех каналов (кнопка "Все каналы") ----------
-    // Создаём кнопку, если её нет
-    let allChannelsBtn = document.getElementById('showAllChannelsBtn');
-    if (!allChannelsBtn) {
-        allChannelsBtn = document.createElement('button');
-        allChannelsBtn.id = 'showAllChannelsBtn';
-        allChannelsBtn.textContent = '📢 Все каналы';
-        allChannelsBtn.style.margin = '10px';
-        allChannelsBtn.style.padding = '10px';
-        allChannelsBtn.style.width = 'calc(100% - 20px)';
-        allChannelsBtn.style.border = 'none';
-        allChannelsBtn.style.borderRadius = '20px';
-        allChannelsBtn.style.background = '#2b5278';
-        allChannelsBtn.style.color = '#fff';
-        allChannelsBtn.style.cursor = 'pointer';
-        document.querySelector('.channel-actions').appendChild(allChannelsBtn);
-    }
-
-    allChannelsBtn.onclick = async () => {
-        let { data: allChannels } = await supabaseClient
-            .from('channels')
-            .select('*');
-        allChannelsList.innerHTML = '';
-        (allChannels || []).forEach(ch => {
-            let div = document.createElement('div');
-            div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
-            let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
-            div.innerHTML = `
-                <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
-                <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
-            `;
-            let btn = document.createElement('button');
-            btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
-            btn.disabled = isSub;
-            btn.onclick = async ()=>{
-                if (!isSub) {
-                    if (!ch.subscribers) ch.subscribers = [];
-                    ch.subscribers.push(currentUser.phone);
-                    await supabaseClient
-                        .from('channels')
-                        .update({ subscribers: ch.subscribers })
-                        .eq('id', ch.id);
-                    btn.disabled = true;
-                    btn.textContent = '✓ Подписан';
-                    renderChannelsList();
-                }
-            };
-            div.appendChild(btn);
-            allChannelsList.appendChild(div);
-        });
-        allChannelsModal.style.display = 'flex';
     };
 
     // ---------- Друзья ----------
