@@ -860,16 +860,18 @@
                 <span>📢</span>
                 <input type="file" id="channelSettingsAvatarInput" accept="image/*" style="display:none;">
             </div>
-            <div><button id="saveChannelSettings" class="create-btn">Сохранить</button><button id="closeChannelSettings">Отмена</button></div>
+            <button id="saveChannelSettings" class="create-btn">Сохранить</button>
+            <button id="deleteChannelBtn" class="danger-btn" style="margin-top:10px;background:#f44336;">Удалить канал</button>
+            <button id="closeChannelSettings">Отмена</button>
         </div>
     </div>
 
     <div class="modal" id="allChannelsModal">
         <div class="modal-content" style="width:400px;max-height:80vh;overflow-y:auto;">
-            <h3>Поиск каналов</h3>
+            <h3>Все каналы</h3>
             <input type="text" id="allChannelsSearch" placeholder="Введите название или @юзернейм...">
             <div id="allChannelsList"></div>
-            <button id="closeAllChannelsModal">Закрыть</button>
+            <button id="closeAllChannelsModal">Назад</button>
         </div>
     </div>
 
@@ -943,7 +945,7 @@
     // ---------- Глобальные переменные ----------
     let currentUser = null;
     let currentUserPhone = null;
-    let currentContactId = 'bot';
+    let currentContactId = 'bot_ai'; // теперь по умолчанию бот с ИИ
     let currentMode = 'chats';
     let unsubscribeMessages = null;
     let unsubscribeTyping = null;
@@ -972,10 +974,13 @@
     if ('Notification' in window && Notification.permission === 'granted') notificationPermission = true;
     else if (Notification.permission !== 'denied') Notification.requestPermission();
 
-    const botUser = {
-        phone: 'bot',
-        username: 'VoxChat',
-        name: 'VoxChat',
+    // ---------- Боты и создатель ----------
+    const creatorPhone = '+79016135086'; // ЗАМЕНИТЕ НА СВОЙ НОМЕР
+    const aiBotPhone = 'bot_ai';
+    const aiBot = {
+        phone: aiBotPhone,
+        username: 'VoxShat_ai',
+        name: 'VoxShat AI',
         avatar: null,
         badges: { blue: true, red: false }
     };
@@ -1068,6 +1073,7 @@
     const channelSettingsAvatarInput = document.getElementById('channelSettingsAvatarInput');
     const saveChannelSettings = document.getElementById('saveChannelSettings');
     const closeChannelSettings = document.getElementById('closeChannelSettings');
+    const deleteChannelBtn = document.getElementById('deleteChannelBtn');
     const channelSearchInput = document.getElementById('channelSearchInput');
     const allChannelsSearch = document.getElementById('allChannelsSearch');
 
@@ -1296,13 +1302,17 @@
                     setTimeout(() => app.classList.add('visible'), 50);
                 }, 300);
                 afterLogin(phone);
-                let botChatId = 'bot';
+                // Приветственное сообщение от ИИ-бота
                 await supabaseClient
                     .from('messages')
                     .insert([{
-                        chat_id: botChatId,
-                        sender: 'bot',
-                        text: 'Добро пожаловать в VoxChat! Я бот с синей галочкой. Здесь есть чаты, каналы, галочки и многое другое. Изучайте!',
+                        chat_id: aiBotPhone,
+                        sender: aiBotPhone,
+                        text: '👋 Добро пожаловать в VoxChat! Я бот-помощник с искусственным интеллектом. Я могу:\n' +
+                              '• отвечать на ваши вопросы,\n' +
+                              '• помогать с проблемами,\n' +
+                              '• передавать жалобы создателю.\n' +
+                              'Просто напишите мне!',
                         time: new Date().toISOString()
                     }]);
             };
@@ -1508,7 +1518,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });            // ---------- Переключение режимов ----------
+    });    // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -1527,7 +1537,7 @@
                 if (currentUser && currentUser.friends && currentUser.friends.list.length > 0) {
                     switchContact(currentUser.friends.list[0]);
                 } else {
-                    switchContact('bot');
+                    switchContact(aiBotPhone);
                 }
             }
         } else if (mode === 'channels') {
@@ -1561,21 +1571,24 @@
     profileModeBtn.onclick = ()=> initMode('profile');
     settingsModeBtn.onclick = ()=> initMode('settings');
 
-    // ---------- Контакты ----------
+    // ---------- Контакты (только ИИ-бот и друзья) ----------
     async function renderContacts() {
         contactsListEl.innerHTML = '';
-        let botDiv = document.createElement('div');
-        botDiv.className = `contact ${currentContactId === 'bot' ? 'active' : ''}`;
-        botDiv.innerHTML = `
+
+        // ИИ-бот
+        let aiBotDiv = document.createElement('div');
+        aiBotDiv.className = `contact ${currentContactId === aiBotPhone ? 'active' : ''}`;
+        aiBotDiv.innerHTML = `
             <div class="contact-avatar">🤖</div>
             <div class="contact-info">
-                <div class="contact-name">VoxChat <span class="verified blue">✓</span></div>
+                <div class="contact-name">${aiBot.name} <span class="verified blue">✓</span></div>
                 <div class="contact-status">онлайн</div>
             </div>
         `;
-        botDiv.onclick = ()=> switchContact('bot');
-        contactsListEl.appendChild(botDiv);
+        aiBotDiv.onclick = ()=> switchContact(aiBotPhone);
+        contactsListEl.appendChild(aiBotDiv);
 
+        // Друзья
         if (currentUser && currentUser.friends && currentUser.friends.list) {
             for (let friendPhone of currentUser.friends.list) {
                 let { data: friend } = await supabaseClient
@@ -1626,12 +1639,12 @@
         messagesOffset = 0;
         hasMoreMessages = true;
 
-        if (id === 'bot') {
-            chatHeaderTitle.innerHTML = 'VoxChat <span class="verified blue">✓</span>';
+        if (id === aiBotPhone) {
+            chatHeaderTitle.innerHTML = `${aiBot.name} <span class="verified blue">✓</span>`;
             chatHeaderSubtitle.textContent = '';
             typingIndicator.textContent = '';
-            subscribeToMessages('bot');
-            subscribeToTyping('bot');
+            subscribeToMessages(aiBotPhone);
+            subscribeToTyping(aiBotPhone);
         } else {
             supabaseClient
                 .from('users')
@@ -1703,14 +1716,12 @@
     function getChatId(contactId) {
         if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
-        if (contactId === 'bot') return 'bot';
-        // Если это номер телефона (начинается с +), то это личный чат
+        if (contactId === aiBotPhone) return aiBotPhone; // чат с ботом
         if (contactId.startsWith('+')) {
             if (!currentUser) return '';
             return `private_${[currentUser.phone, contactId].sort().join('_')}`;
         }
-        // Иначе это канал (числовой id)
-        return contactId;
+        return contactId; // канал
     }
 
     async function loadMessages(chatId, loadMore = false) {
@@ -1720,7 +1731,6 @@
         if (!loadMore) {
             messagesOffset = 0;
             messagesContainer.innerHTML = '';
-            // Показываем скелетоны
             for (let i = 0; i < 5; i++) {
                 let skeleton = document.createElement('div');
                 skeleton.className = 'skeleton-message';
@@ -1739,7 +1749,7 @@
             isLoadingMessages = false;
             return;
         }
-        if (!loadMore) messagesContainer.innerHTML = ''; // убираем скелетоны
+        if (!loadMore) messagesContainer.innerHTML = '';
         if (msgs.length < messagesLimit) hasMoreMessages = false;
         msgs.reverse();
         if (loadMore) {
@@ -1838,7 +1848,6 @@
         w.dataset.id = msg.id;
         w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
 
-        // Если это ответ на другое сообщение, показываем цитату
         if (msg.reply_to) {
             let replyDiv = document.createElement('div');
             replyDiv.className = 'reply-indicator';
@@ -1852,7 +1861,6 @@
             replyDiv.textContent = '↩️ Загрузка...';
             w.appendChild(replyDiv);
 
-            // Асинхронно загружаем текст исходного сообщения
             supabaseClient
                 .from('messages')
                 .select('text, image, sender')
@@ -2021,7 +2029,7 @@
         currentReactionMsg = null;
     };
 
-    // ---------- Отправка сообщения с поддержкой ответа ----------
+    // ---------- Отправка сообщения с поддержкой ответа и ИИ-бота ----------
     sendButton.onclick = async ()=> {
         let text = messageInput.value.trim();
         if (!text || !currentUser) return;
@@ -2039,13 +2047,56 @@
         await supabaseClient
             .from('messages')
             .insert([msgObj]);
+
+        // Если сообщение отправлено боту, генерируем ответ
+        if (currentContactId === aiBotPhone && currentUser.phone !== aiBotPhone) {
+            setTimeout(async () => {
+                let replyText = generateAIResponse(text);
+                let replyMsg = {
+                    chat_id: chatId,
+                    sender: aiBotPhone,
+                    text: replyText,
+                    time: new Date().toISOString()
+                };
+                await supabaseClient.from('messages').insert([replyMsg]);
+            }, 1000);
+        }
+
+        // Если это жалоба (можно добавить ключевые слова), дублируем создателю
+        if (currentContactId === aiBotPhone && (text.toLowerCase().includes('ошибк') || text.toLowerCase().includes('проблем'))) {
+            let creatorChatId = `private_${[currentUser.phone, creatorPhone].sort().join('_')}`;
+            let forwardMsg = {
+                chat_id: creatorChatId,
+                sender: currentUser.phone,
+                text: `📢 Жалоба от ${currentUser.phone}:\n${text}`,
+                time: new Date().toISOString()
+            };
+            await supabaseClient.from('messages').insert([forwardMsg]);
+        }
+
         messageInput.value = '';
-        // Убираем плашку ответа, если она была
         let bar = document.getElementById('replyBar');
         if (bar) bar.remove();
         replyToMessage = null;
         messageInput.placeholder = 'Сообщение...';
     };
+
+    // Простая функция-имитатор ИИ
+    function generateAIResponse(userText) {
+        let lower = userText.toLowerCase();
+        if (lower.includes('привет') || lower.includes('здравствуйте')) {
+            return 'Здравствуйте! Я бот-помощник VoxShat_ai. Чем могу помочь?';
+        } else if (lower.includes('ошибка') || lower.includes('проблема') || lower.includes('не работает')) {
+            return 'Опишите вашу проблему подробнее, и я передам информацию разработчику.';
+        } else if (lower.includes('спасибо')) {
+            return 'Пожалуйста! Обращайтесь ещё.';
+        } else if (lower.includes('пока') || lower.includes('до свидания')) {
+            return 'До свидания! Если что, я здесь.';
+        } else {
+            return 'Я вас понял. Если у вас есть вопрос, задайте его, или напишите "ошибка", чтобы сообщить о проблеме.';
+        }
+    }
+
     messageInput.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); sendButton.click(); } };
 
     // ---------- Прокрутка для пагинации ----------
@@ -2062,7 +2113,6 @@
             .from('channels')
             .select('*');
         allChannelsData = channels || [];
-        // Фильтруем только каналы, в которых пользователь подписан
         let filtered = channels ? channels.filter(ch => 
             ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
             (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -2092,68 +2142,9 @@
         });
     }
 
-    // Поиск по каналам (локальный) – убираем поле поиска, оставляем только кнопку "Все каналы"
-    // Удаляем старый инпут, если он есть
-    if (channelSearchInput) {
-        channelSearchInput.style.display = 'none';
-    }
-
-    // Создаём кнопку "Все каналы" в channelActions, если её нет
-    let allChannelsBtn = document.getElementById('showAllChannelsBtn');
-    if (!allChannelsBtn) {
-        allChannelsBtn = document.createElement('button');
-        allChannelsBtn.id = 'showAllChannelsBtn';
-        allChannelsBtn.textContent = '📢 Все каналы';
-        allChannelsBtn.style.margin = '10px';
-        allChannelsBtn.style.padding = '10px';
-        allChannelsBtn.style.width = 'calc(100% - 20px)';
-        allChannelsBtn.style.border = 'none';
-        allChannelsBtn.style.borderRadius = '20px';
-        allChannelsBtn.style.background = '#2b5278';
-        allChannelsBtn.style.color = '#fff';
-        allChannelsBtn.style.cursor = 'pointer';
-        channelActions.appendChild(allChannelsBtn);
-    }
-
-    allChannelsBtn.onclick = async () => {
-        let { data: allChannels } = await supabaseClient
-            .from('channels')
-            .select('*');
-        allChannelsList.innerHTML = '';
-        (allChannels || []).forEach(ch => {
-            let div = document.createElement('div');
-            div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
-            let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
-            div.innerHTML = `
-                <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
-                <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
-            `;
-            let btn = document.createElement('button');
-            btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
-            btn.disabled = isSub;
-            btn.onclick = async ()=>{
-                if (!isSub) {
-                    if (!ch.subscribers) ch.subscribers = [];
-                    ch.subscribers.push(currentUser.phone);
-                    await supabaseClient
-                        .from('channels')
-                        .update({ subscribers: ch.subscribers })
-                        .eq('id', ch.id);
-                    btn.disabled = true;
-                    btn.textContent = '✓ Подписан';
-                    renderChannelsList();
-                }
-            };
-            div.appendChild(btn);
-            allChannelsList.appendChild(div);
-        });
-        allChannelsModal.style.display = 'flex';
-    };
-
-    // Исправляем кнопку закрытия модалки
-    closeAllChannelsModal.onclick = () => {
-        allChannelsModal.style.display = 'none';
-    };
+    channelSearchInput.addEventListener('input', (e) => {
+        renderChannelsList(e.target.value);
+    });
 
     async function switchChannelView(chId) {
         if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
@@ -2162,7 +2153,7 @@
         }
         currentContactId = String(chId);
         console.log('📢 Переключение на канал, chId =', chId);
-        renderChannelsList();
+        renderChannelsList(channelSearchInput.value);
         let { data: ch } = await supabaseClient
             .from('channels')
             .select('*')
@@ -2197,8 +2188,6 @@
             settingsBtn.onclick = () => {
                 channelSettingsName.value = ch.name;
                 channelSettingsUsername.value = ch.username || '';
-                // Добавляем кнопку удаления канала, если её нет в модалке (проверим позже)
-                // Временно просто открываем модалку
                 channelSettingsModal.style.display = 'flex';
                 window.currentChannelForSettings = ch.id;
             };
@@ -2254,48 +2243,22 @@
         switchChannelView(chId);
     }
 
-    closeChannelSettings.onclick = () => {
-        channelSettingsModal.style.display = 'none';
-    };
-
-    // Добавляем кнопку удаления канала в модалку настроек
-    // Для этого нужно динамически добавить кнопку в modal-content, если её нет
-    // Но проще добавить её сразу в HTML, но мы можем добавить и скриптом.
-    // Проверим, есть ли уже кнопка удаления. Если нет – создадим.
-    let deleteChannelBtn = document.getElementById('deleteChannelBtn');
-    if (!deleteChannelBtn) {
-        deleteChannelBtn = document.createElement('button');
-        deleteChannelBtn.id = 'deleteChannelBtn';
-        deleteChannelBtn.textContent = '🗑️ Удалить канал';
-        deleteChannelBtn.style.padding = '10px';
-        deleteChannelBtn.style.margin = '5px';
-        deleteChannelBtn.style.background = '#f44336';
-        deleteChannelBtn.style.color = '#fff';
-        deleteChannelBtn.style.border = 'none';
-        deleteChannelBtn.style.borderRadius = '20px';
-        deleteChannelBtn.style.cursor = 'pointer';
-        deleteChannelBtn.style.width = '100%';
-        // Вставляем после кнопок сохранения/отмены
-        let modalContent = channelSettingsModal.querySelector('.modal-content');
-        modalContent.appendChild(deleteChannelBtn);
-    }
-
+    // Удаление канала
     deleteChannelBtn.onclick = async () => {
         let chId = window.currentChannelForSettings;
         if (!chId) return;
         if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
-        // Удаляем канал из БД
-        let { error } = await supabaseClient
+        await supabaseClient
             .from('channels')
             .delete()
             .eq('id', chId);
-        if (error) {
-            alert('Ошибка при удалении канала: ' + error.message);
-            return;
-        }
         channelSettingsModal.style.display = 'none';
-        // Переключаемся на список каналов
         initMode('channels');
+        clearChatArea();
+    };
+
+    closeChannelSettings.onclick = () => {
+        channelSettingsModal.style.display = 'none';
     };
 
     // Создание канала
@@ -2345,6 +2308,62 @@
         createChannelModal.style.display = 'none';
         channelNameInput.value = '';
         channelUsernameInput.value = '';
+    };
+
+    // ---------- Поиск всех каналов (кнопка "Все каналы") ----------
+    let allChannelsBtn = document.getElementById('showAllChannelsBtn');
+    if (!allChannelsBtn) {
+        allChannelsBtn = document.createElement('button');
+        allChannelsBtn.id = 'showAllChannelsBtn';
+        allChannelsBtn.textContent = '📢 Все каналы';
+        allChannelsBtn.style.margin = '10px';
+        allChannelsBtn.style.padding = '10px';
+        allChannelsBtn.style.width = 'calc(100% - 20px)';
+        allChannelsBtn.style.border = 'none';
+        allChannelsBtn.style.borderRadius = '20px';
+        allChannelsBtn.style.background = '#2b5278';
+        allChannelsBtn.style.color = '#fff';
+        allChannelsBtn.style.cursor = 'pointer';
+        document.querySelector('.channel-actions').appendChild(allChannelsBtn);
+    }
+
+    allChannelsBtn.onclick = async () => {
+        let { data: allChannels } = await supabaseClient
+            .from('channels')
+            .select('*');
+        allChannelsList.innerHTML = '';
+        (allChannels || []).forEach(ch => {
+            let div = document.createElement('div');
+            div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
+            let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
+            div.innerHTML = `
+                <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
+                <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
+            `;
+            let btn = document.createElement('button');
+            btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
+            btn.disabled = isSub;
+            btn.onclick = async ()=>{
+                if (!isSub) {
+                    if (!ch.subscribers) ch.subscribers = [];
+                    ch.subscribers.push(currentUser.phone);
+                    await supabaseClient
+                        .from('channels')
+                        .update({ subscribers: ch.subscribers })
+                        .eq('id', ch.id);
+                    btn.disabled = true;
+                    btn.textContent = '✓ Подписан';
+                    renderChannelsList();
+                }
+            };
+            div.appendChild(btn);
+            allChannelsList.appendChild(div);
+        });
+        allChannelsModal.style.display = 'flex';
+    };
+
+    closeAllChannelsModal.onclick = () => {
+        allChannelsModal.style.display = 'none';
     };
 
     // ---------- Друзья ----------
