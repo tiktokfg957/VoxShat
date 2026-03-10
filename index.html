@@ -303,7 +303,17 @@
     </div>
 
     <!-- Модальные окна -->
-    <div class="modal" id="registerModal"><div class="modal-content"><h3>Регистрация</h3><p>Номер не найден. Придумайте пароль (мин.6 символов, буквы+цифры).</p><input type="password" id="registerPassword" placeholder="Пароль"><input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль"><div><button id="confirmRegister" disabled>Зарегистрироваться</button><button id="cancelRegister">Отмена</button></div></div></div>
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <h3>Регистрация</h3>
+            <p>Номер не найден. Придумайте пароль (мин.6 символов, буквы+цифры).</p>
+            <input type="text" id="registerUsername" placeholder="@юзернейм" value="">
+            <input type="password" id="registerPassword" placeholder="Пароль">
+            <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль">
+            <div><button id="confirmRegister" disabled>Зарегистрироваться</button><button id="cancelRegister">Отмена</button></div>
+        </div>
+    </div>
+
     <div class="modal" id="resetModal"><div class="modal-content"><h3>Сброс пароля</h3><p>Введите номер и код из SMS</p><input type="tel" id="resetPhone" placeholder="+7 999 123-45-67"><input type="text" id="resetCode" placeholder="Код подтверждения"><div><button id="sendResetCodeBtn">Отправить код</button></div><div><button id="verifyResetBtn">Проверить код и сбросить</button></div><div><button id="cancelResetBtn">Отмена</button></div></div></div>
     <div class="modal" id="newPasswordModal"><div class="modal-content"><h3>Новый пароль</h3><input type="password" id="newPassword" placeholder="Новый пароль"><input type="password" id="newPasswordConfirm" placeholder="Повторите пароль"><div><button id="setNewPasswordBtn">Сохранить</button><button id="cancelNewPasswordBtn">Отмена</button></div></div></div>
     <div class="modal" id="createChannelModal"><div class="modal-content"><h3>Создать канал</h3><input type="text" id="channelNameInput" placeholder="Название канала"><input type="text" id="channelUsernameInput" placeholder="@юзернейм канала (для поиска)"><div class="profile-avatar" style="margin:10px auto;" onclick="document.getElementById('channelAvatarInput').click();"><span>📢</span><input type="file" id="channelAvatarInput" accept="image/*" style="display:none;"></div><div><button class="create-btn" id="confirmCreateChannel">Создать</button><button id="cancelCreateChannel">Отмена</button></div></div></div>
@@ -429,6 +439,7 @@
             const allChannelsList = document.getElementById('allChannelsList');
             const closeAllChannelsModal = document.getElementById('closeAllChannelsModal');
             const registerModal = document.getElementById('registerModal');
+            const registerUsername = document.getElementById('registerUsername');
             const registerPassword = document.getElementById('registerPassword');
             const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
             const confirmRegister = document.getElementById('confirmRegister');
@@ -570,6 +581,10 @@
                 let db = loadDB();
                 return db.users.find(u => u.phone === phone);
             }
+            function findUserByUsername(username) {
+                let db = loadDB();
+                return db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+            }
             function saveUser(user) {
                 let db = loadDB();
                 let index = db.users.findIndex(u => u.phone === user.phone);
@@ -633,11 +648,16 @@
                     registerPasswordConfirm.addEventListener('input', validateRegPassword);
                     confirmRegister.onclick = () => {
                         let p1 = registerPassword.value;
+                        let username = registerUsername.value.trim().toLowerCase();
+                        if (username && findUserByUsername(username)) {
+                            alert('Этот @юзернейм уже занят');
+                            return;
+                        }
                         const hashed = hashPassword(p1);
                         const newUser = {
                             phone: phone,
                             password: hashed,
-                            username: '',
+                            username: username || '',
                             name: '',
                             avatar: null,
                             badges: { blue: false, red: false },
@@ -755,7 +775,15 @@
                 }
             };
             profileSaveBtn.onclick = () => {
-                currentUser.username = profileUsername.value.trim().toLowerCase();
+                let newUsername = profileUsername.value.trim().toLowerCase();
+                if (newUsername !== currentUser.username) {
+                    let existing = findUserByUsername(newUsername);
+                    if (existing && existing.phone !== currentUser.phone) {
+                        alert('Этот @юзернейм уже занят');
+                        return;
+                    }
+                }
+                currentUser.username = newUsername;
                 currentUser.name = profileName.value.trim();
                 saveUser(currentUser);
                 alert('Сохранено');
