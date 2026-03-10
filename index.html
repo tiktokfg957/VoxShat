@@ -931,7 +931,7 @@
 
     <!-- Подключение Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>(function() {
+    <script>м(function() {
     // ================== НАСТРОЙКИ SUPABASE ==================
     const supabaseUrl = 'https://yczrkdbyssogvqmwylow.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljenJrZGJ5c3NvZ3ZxbXd5bG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODM3MjcsImV4cCI6MjA4ODU1OTcyN30.hW5tWQA6qS8pKYhR_vUJ5EmWy414MjhTH3ktHEikMpk';
@@ -1700,17 +1700,18 @@
     });
 
     // ---------- Сообщения с поддержкой ответов ----------
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ getChatId
     function getChatId(contactId) {
         if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
         if (contactId === 'bot') return 'bot';
-        // Для канала contactId уже является строкой с числовым id
-        // Не добавляем префикс 'channel_', так как в базе chat_id = id канала (число, но в строке)
-        if (contactId.startsWith('channel_')) {
-            // Если вдруг есть префикс, убираем его? В текущей реализации id канала не содержит префикса.
-            // Возвращаем как есть.
+        // Если это номер телефона (начинается с +), то это личный чат
+        if (contactId.startsWith('+')) {
+            if (!currentUser) return '';
+            return `private_${[currentUser.phone, contactId].sort().join('_')}`;
         }
-        return contactId; // для канала просто id
+        // Иначе это канал (числовой id)
+        return contactId;
     }
 
     async function loadMessages(chatId, loadMore = false) {
