@@ -1918,7 +1918,7 @@
         currentReactionMsg = null;
     };
 
-    // ---------- Отправка сообщения ----------
+    // ---------- ⭐ УПРОЩЁННАЯ ОТПРАВКА СООБЩЕНИЯ (без reactions, reacted_by, reply_to) ----------
     sendButton.onclick = async ()=> {
         let text = messageInput.value.trim();
         if (!text || !currentUser) return;
@@ -1927,13 +1927,14 @@
             chat_id: chatId,
             sender: currentUser.phone,
             text: text,
-            time: new Date().toISOString(),
-            reactions: {},
-            reacted_by: []
+            time: new Date().toISOString()
+            // reactions: {},       // временно убрано
+            // reacted_by: []       // временно убрано
         };
-        if (replyToMessage) {
-            msgObj.reply_to = replyToMessage.id;
-        }
+        // if (replyToMessage) {   // временно отключена функция ответов
+        //     msgObj.reply_to = replyToMessage.id;
+        // }
+        console.log('📤 Отправка (упрощённая):', msgObj);
         await supabaseClient
             .from('messages')
             .insert([msgObj]);
@@ -1941,6 +1942,8 @@
         replyToMessage = null;
         messageInput.placeholder = 'Сообщение...';
     };
+    // --------------------------------------------------------------------------------
+
     messageInput.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); sendButton.click(); } };
 
     // ---------- Прокрутка для пагинации ----------
