@@ -1822,6 +1822,7 @@
         messageInput.placeholder = 'Ваш ответ...';
     }
 
+    // Обновлённая функция appendMessage с загрузкой текста исходного сообщения
     function appendMessage(msg) {
         let w = document.createElement('div');
         w.className = 'message-wrapper';
@@ -1839,8 +1840,23 @@
             replyDiv.style.borderLeft = '3px solid #3390ec';
             replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
             replyDiv.style.borderRadius = '4px';
-            replyDiv.textContent = `↩️ Ответ на сообщение`; // В реальном проекте можно подгрузить текст
+            replyDiv.textContent = '↩️ Загрузка...';
             w.appendChild(replyDiv);
+
+            // Асинхронно загружаем текст исходного сообщения
+            supabaseClient
+                .from('messages')
+                .select('text, image, sender')
+                .eq('id', msg.reply_to)
+                .single()
+                .then(({ data: originalMsg, error }) => {
+                    if (error) {
+                        replyDiv.textContent = '↩️ Сообщение не найдено';
+                        return;
+                    }
+                    let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                    replyDiv.textContent = `↩️ ${replyText}`;
+                });
         }
 
         let md = document.createElement('div');
@@ -1859,7 +1875,7 @@
         let f = document.createElement('div');
         f.className = 'message-footer';
 
-        // Кнопка реакций (пока оставим, но реакции не отправляются – можно будет добавить позже)
+        // Кнопка реакций
         let r = document.createElement('button');
         r.className = 'reaction-btn';
         let reactions = msg.reactions || {};
@@ -1892,6 +1908,7 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
+    // Обновлённая функция prependMessage (для пагинации)
     function prependMessage(msg) {
         let w = document.createElement('div');
         w.className = 'message-wrapper';
@@ -1907,8 +1924,22 @@
             replyDiv.style.borderLeft = '3px solid #3390ec';
             replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
             replyDiv.style.borderRadius = '4px';
-            replyDiv.textContent = '↩️ Ответ на сообщение';
+            replyDiv.textContent = '↩️ Загрузка...';
             w.appendChild(replyDiv);
+
+            supabaseClient
+                .from('messages')
+                .select('text, image, sender')
+                .eq('id', msg.reply_to)
+                .single()
+                .then(({ data: originalMsg, error }) => {
+                    if (error) {
+                        replyDiv.textContent = '↩️ Сообщение не найдено';
+                        return;
+                    }
+                    let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                    replyDiv.textContent = `↩️ ${replyText}`;
+                });
         }
 
         let md = document.createElement('div');
