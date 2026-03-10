@@ -1518,7 +1518,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });    // ---------- Переключение режимов ----------
+    });        // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -2081,20 +2081,59 @@
         messageInput.placeholder = 'Сообщение...';
     };
 
-    // Простая функция-имитатор ИИ
+    // Умный ИИ-бот с расширенной логикой
     function generateAIResponse(userText) {
-        let lower = userText.toLowerCase();
-        if (lower.includes('привет') || lower.includes('здравствуйте')) {
-            return 'Здравствуйте! Я бот-помощник VoxShat_ai. Чем могу помочь?';
-        } else if (lower.includes('ошибка') || lower.includes('проблема') || lower.includes('не работает')) {
-            return 'Опишите вашу проблему подробнее, и я передам информацию разработчику.';
-        } else if (lower.includes('спасибо')) {
-            return 'Пожалуйста! Обращайтесь ещё.';
-        } else if (lower.includes('пока') || lower.includes('до свидания')) {
-            return 'До свидания! Если что, я здесь.';
-        } else {
-            return 'Я вас понял. Если у вас есть вопрос, задайте его, или напишите "ошибка", чтобы сообщить о проблеме.';
+        let lower = userText.toLowerCase().trim();
+
+        // Приветствия
+        if (lower.match(/^(привет|здравствуй|здравствуйте|хай|hello|hi)/)) {
+            return '👋 Привет! Я бот-помощник VoxShat_ai. Чем могу помочь? Напиши "помощь", чтобы узнать мои возможности.';
         }
+
+        // Вопросы о возможностях
+        if (lower.includes('помощь') || lower.includes('что ты умеешь') || lower.includes('можешь')) {
+            return 'Я могу:\n• отвечать на вопросы о VoxChat,\n• помогать с настройкой,\n• принимать жалобы и передавать их разработчику.\nЕсли я не смогу помочь, напишите "жалоба" – мы отправим сообщение создателю.';
+        }
+
+        // Вопросы о разработчике / создателе
+        if (lower.includes('создатель') || lower.includes('разработчик') || lower.includes('кто сделал')) {
+            return 'VoxChat создан талантливым разработчиком. По всем вопросам можно писать на почту voxshat@gmail.com.';
+        }
+
+        // Жалобы и проблемы
+        if (lower.includes('жалоба') || lower.includes('проблем') || lower.includes('ошибк') || lower.includes('не работ') || lower.includes('баг')) {
+            return 'Опишите вашу проблему подробнее, и я передам её разработчику. Вы также можете написать напрямую на voxshat@gmail.com.';
+        }
+
+        // Вопросы о функционале
+        if (lower.includes('как создать канал') || lower.includes('как сделать канал')) {
+            return 'Чтобы создать канал, перейдите во вкладку "Каналы" и нажмите "➕ Создать канал". Укажите название и @юзернейм.';
+        }
+        if (lower.includes('как добавить друга') || lower.includes('добавить друга')) {
+            return 'Перейдите во вкладку "Друзья", нажмите "➕ Добавить друга" и введите @юзернейм пользователя.';
+        }
+        if (lower.includes('как отправить сообщение')) {
+            return 'Выберите чат с пользователем в левой панели, введите текст и нажмите кнопку отправки (➤) или Enter.';
+        }
+        if (lower.includes('как поставить реакцию')) {
+            return 'Наведите на сообщение и нажмите на сердечко ❤️, затем выберите нужную реакцию.';
+        }
+        if (lower.includes('что такое премиум')) {
+            return 'Premium даёт красную галочку и поддерживает разработчика. Подробнее в разделе "Профиль".';
+        }
+
+        // Благодарности
+        if (lower.includes('спасибо')) {
+            return 'Пожалуйста! Рад помочь. Обращайтесь ещё.';
+        }
+
+        // Прощания
+        if (lower.includes('пока') || lower.includes('до свидания') || lower.includes('до встречи')) {
+            return 'До свидания! Если что, я здесь.';
+        }
+
+        // По умолчанию
+        return 'Я вас понял. Если у вас есть вопрос, задайте его, или напишите "жалоба", чтобы сообщить о проблеме. Также можете написать нам на почту voxshat@gmail.com.';
     }
 
     messageInput.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); sendButton.click(); } };
