@@ -6,7 +6,7 @@
     <title>VoxChat — мессенджер</title>
     <!-- CryptoJS для хеширования паролей -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <!-- Favicon (эмодзи-чат) -->
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
     <style>
         /* --- Базовые стили (как в Telegram) --- */
@@ -1108,13 +1108,13 @@
         }
     </style>
 </head>
-<body class="dark classic-style">    <!-- Экран входа -->
+<body class="dark classic-style">
+    <!-- Экран входа -->
     <div class="login-screen" id="loginScreen">
         <h2>
             Вход в VoxChat
             <span class="settings-icon" id="openSettingsBtn">⚙️</span>
         </h2>
-        <!-- Блок выбора региона (автоматически определится по IP) -->
         <div class="region-selector">
             <span>Ваш регион:</span>
             <button id="selectCountryBtn">
@@ -1344,7 +1344,9 @@
             <button id="voxStyleBtn" style="padding:10px;margin:5px;background:linear-gradient(135deg,#ee7752,#e73c7e);color:#fff;border:none;border-radius:20px;width:100%;">Градиент (VoxShat)</button>
             <button id="closeStyleModal" style="padding:10px;margin:5px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Закрыть</button>
         </div>
-    </div>    <!-- Подключение Supabase -->
+    </div>
+
+    <!-- Подключение Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
     (function() {
@@ -1359,11 +1361,11 @@
         // ---------- Глобальные переменные ----------
         let currentUser = null;
         let currentUserPhone = null;
-        let currentContactId = ''; // пусто при старте
+        let currentContactId = '';
         let currentMode = 'chats';
-        let unsubscribeMessages = null;
-        let unsubscribeTyping = null;
-        let unsubscribeMessageUpdates = null; // для обновлений (реакции, редактирование)
+        let unsubscribeMessages = null;      // объект подписки на новые сообщения
+        let unsubscribeTyping = null;        // объект подписки на печатание
+        let unsubscribeMessageUpdates = null; // объект подписки на обновления (реакции)
         let activeTimers = {};
         let resetCode = null;
         let editMessageId = null;
@@ -1372,7 +1374,6 @@
         let hasMoreMessages = true;
         const messagesLimit = 30;
         let messagesOffset = 0;
-        // Для оптимизации загрузки друзей
         let friendsCache = new Map(); // phone -> user object
 
         // Анимация всплывающей реакции
@@ -1629,7 +1630,7 @@
 
         function startPresenceUpdates() {
             updateLastSeen();
-            setInterval(updateLastSeen, 30000);
+            setInterval(updateLastSeen, 60000); // раз в минуту, чтобы снизить нагрузку
             document.addEventListener('click', updateLastSeen);
             document.addEventListener('scroll', updateLastSeen);
             document.addEventListener('keydown', updateLastSeen);
@@ -1757,16 +1758,17 @@
             loginError.textContent = '';
             currentUser = null;
             currentUserPhone = null;
-            if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
-                unsubscribeMessages();
+            // Отписываемся от всех подписок
+            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
+                unsubscribeMessages.unsubscribe();
                 unsubscribeMessages = null;
             }
-            if (unsubscribeTyping && typeof unsubscribeTyping === 'function') {
-                unsubscribeTyping();
+            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
+                unsubscribeTyping.unsubscribe();
                 unsubscribeTyping = null;
             }
-            if (unsubscribeMessageUpdates && typeof unsubscribeMessageUpdates === 'function') {
-                unsubscribeMessageUpdates();
+            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
+                unsubscribeMessageUpdates.unsubscribe();
                 unsubscribeMessageUpdates = null;
             }
             document.getElementById('debugInfo').innerHTML = '';
@@ -1934,7 +1936,9 @@
             } catch (e) {
                 alert('Ошибка при удалении: ' + e.message);
             }
-        });        // ---------- Переключение режимов ----------
+        });
+
+        // ---------- Переключение режимов ----------
         function initMode(mode) {
             currentMode = mode;
             [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -1995,7 +1999,6 @@
             contactsListEl.innerHTML = '';
 
             if (currentUser && currentUser.friends && currentUser.friends.list) {
-                // Загружаем всех друзей одним запросом (если их много, можно分批)
                 const friendPhones = currentUser.friends.list;
                 if (friendPhones.length === 0) {
                     contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
@@ -2009,7 +2012,6 @@
                     console.error('Ошибка загрузки друзей:', error);
                     return;
                 }
-                // Кэшируем
                 friendsData.forEach(f => friendsCache.set(f.phone, f));
 
                 for (let friendPhone of friendPhones) {
@@ -2044,9 +2046,18 @@
 
         function switchContact(id) {
             // Отписываемся от старых подписок
-            if (unsubscribeMessages) unsubscribeMessages();
-            if (unsubscribeTyping) unsubscribeTyping();
-            if (unsubscribeMessageUpdates) unsubscribeMessageUpdates();
+            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
+                unsubscribeMessages.unsubscribe();
+                unsubscribeMessages = null;
+            }
+            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
+                unsubscribeTyping.unsubscribe();
+                unsubscribeTyping = null;
+            }
+            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
+                unsubscribeMessageUpdates.unsubscribe();
+                unsubscribeMessageUpdates = null;
+            }
 
             currentContactId = id;
             renderContacts();
@@ -2107,7 +2118,10 @@
         function subscribeToTyping(contactId) {
             let chatId = getChatId(contactId);
             if (!chatId) return;
-            if (unsubscribeTyping) unsubscribeTyping();
+            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
+                unsubscribeTyping.unsubscribe();
+                unsubscribeTyping = null;
+            }
             unsubscribeTyping = supabaseClient
                 .channel(`typing-${chatId}`)
                 .on(
@@ -2202,8 +2216,14 @@
             console.log('📡 Подписка на чат/канал:', chatId);
             loadMessages(chatId, false);
 
-            if (unsubscribeMessages) unsubscribeMessages();
-            if (unsubscribeMessageUpdates) unsubscribeMessageUpdates();
+            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
+                unsubscribeMessages.unsubscribe();
+                unsubscribeMessages = null;
+            }
+            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
+                unsubscribeMessageUpdates.unsubscribe();
+                unsubscribeMessageUpdates = null;
+            }
 
             // Подписка на новые сообщения
             unsubscribeMessages = supabaseClient
@@ -2245,7 +2265,6 @@
         }
 
         function updateMessageInUI(updatedMsg) {
-            // Находим элемент сообщения по id и обновляем его текст/реакции
             const wrapper = document.querySelector(`.message-wrapper[data-id="${updatedMsg.id}"]`);
             if (!wrapper) return;
             const msgDiv = wrapper.querySelector('.message');
@@ -2260,12 +2279,10 @@
                     reactionBtn.innerHTML = `❤️ <span>${total || 0}</span>`;
                 }
             }
-            // Анимация обновления
             wrapper.classList.add('message-update');
             setTimeout(() => wrapper.classList.remove('message-update'), 200);
         }
 
-        // Функция показа плашки ответа
         function showReplyBar(msg) {
             let existingBar = document.getElementById('replyBar');
             if (existingBar) existingBar.remove();
@@ -2335,7 +2352,6 @@
             let f = document.createElement('div');
             f.className = 'message-footer';
 
-            // Кнопка реакций
             let r = document.createElement('button');
             r.className = 'reaction-btn';
             let reactions = msg.reactions || {};
@@ -2350,7 +2366,6 @@
             };
             f.appendChild(r);
 
-            // Кнопка ответа
             let replyBtn = document.createElement('button');
             replyBtn.className = 'reply-btn';
             replyBtn.innerHTML = '↩️';
@@ -2561,9 +2576,18 @@
         });
 
         async function switchChannelView(chId) {
-            if (unsubscribeMessages) unsubscribeMessages();
-            if (unsubscribeTyping) unsubscribeTyping();
-            if (unsubscribeMessageUpdates) unsubscribeMessageUpdates();
+            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
+                unsubscribeMessages.unsubscribe();
+                unsubscribeMessages = null;
+            }
+            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
+                unsubscribeTyping.unsubscribe();
+                unsubscribeTyping = null;
+            }
+            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
+                unsubscribeMessageUpdates.unsubscribe();
+                unsubscribeMessageUpdates = null;
+            }
 
             currentContactId = String(chId);
             messagesOffset = 0;
@@ -2681,7 +2705,6 @@
             let username = channelUsernameInput.value.trim().toLowerCase();
             if (!name) return;
 
-            // Проверка уникальности username
             if (username) {
                 let { data: existing } = await supabaseClient
                     .from('channels')
@@ -2791,7 +2814,9 @@
 
         closeAllChannelsModal.onclick = () => {
             allChannelsModal.style.display = 'none';
-        };        // ---------- Друзья ----------
+        };
+
+        // ---------- Друзья ----------
         function renderFriendsView() {
             ensureFriends(currentUser);
             friendsView.innerHTML = '';
@@ -2820,7 +2845,6 @@
                 friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
             } else {
                 const friendPhones = currentUser.friends.list;
-                // Используем кэш или загружаем
                 Promise.all(friendPhones.map(async phone => {
                     let friend = friendsCache.get(phone);
                     if (!friend) {
@@ -3023,7 +3047,6 @@
             };
         }
 
-        // Функции управления друзьями
         async function sendFriendRequest(targetPhone) {
             ensureFriends(currentUser);
             if (!currentUser.friends.outgoing.includes(targetPhone)) {
@@ -3191,7 +3214,7 @@
         }
 
         function updateStats() {
-            // Подсчёт подписчиков (можно реализовать)
+            // Можно добавить подсчёт подписчиков
         }
 
         // Инициализация
