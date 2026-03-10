@@ -1303,9 +1303,7 @@
                         chat_id: botChatId,
                         sender: 'bot',
                         text: 'Добро пожаловать в VoxChat! Я бот с синей галочкой. Здесь есть чаты, каналы, галочки и многое другое. Изучайте!',
-                        time: new Date().toISOString(),
-                        reactions: {},
-                        reacted_by: []
+                        time: new Date().toISOString()
                     }]);
             };
             cancelRegister.onclick = ()=> { registerModal.style.display = 'none'; };
@@ -1563,7 +1561,7 @@
     profileModeBtn.onclick = ()=> initMode('profile');
     settingsModeBtn.onclick = ()=> initMode('settings');
 
-    // ---------- Контакты (исправленная версия с обратными кавычками) ----------
+    // ---------- Контакты ----------
     async function renderContacts() {
         contactsListEl.innerHTML = '';
         let botDiv = document.createElement('div');
@@ -1701,7 +1699,7 @@
         sendTyping();
     });
 
-    // ---------- Сообщения ----------
+    // ---------- Сообщения с поддержкой ответов ----------
     function getChatId(contactId) {
         if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
@@ -1781,18 +1779,70 @@
             .subscribe();
     }
 
+    // Функция показа плашки ответа
+    function showReplyBar(msg) {
+        let existingBar = document.getElementById('replyBar');
+        if (existingBar) existingBar.remove();
+
+        let bar = document.createElement('div');
+        bar.id = 'replyBar';
+        bar.style.display = 'flex';
+        bar.style.alignItems = 'center';
+        bar.style.justifyContent = 'space-between';
+        bar.style.padding = '8px 12px';
+        bar.style.backgroundColor = '#242f3d';
+        bar.style.borderLeft = '4px solid #3390ec';
+        bar.style.borderRadius = '8px';
+        bar.style.marginBottom = '8px';
+        bar.style.fontSize = '14px';
+
+        let textSpan = document.createElement('span');
+        textSpan.style.flex = '1';
+        textSpan.style.overflow = 'hidden';
+        textSpan.style.whiteSpace = 'nowrap';
+        textSpan.style.textOverflow = 'ellipsis';
+        textSpan.textContent = `↩️ Ответ на: ${msg.text || (msg.image ? '📷 Изображение' : '')}`;
+
+        let cancelBtn = document.createElement('button');
+        cancelBtn.textContent = '✕';
+        cancelBtn.style.background = 'none';
+        cancelBtn.style.border = 'none';
+        cancelBtn.style.color = '#aaa';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.style.fontSize = '16px';
+        cancelBtn.onclick = () => {
+            bar.remove();
+            replyToMessage = null;
+            messageInput.placeholder = 'Сообщение...';
+        };
+
+        bar.appendChild(textSpan);
+        bar.appendChild(cancelBtn);
+        chatInput.parentNode.insertBefore(bar, chatInput);
+        messageInput.placeholder = 'Ваш ответ...';
+    }
+
     function appendMessage(msg) {
         let w = document.createElement('div');
         w.className = 'message-wrapper';
         w.dataset.id = msg.id;
         w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+
+        // Если это ответ на другое сообщение, показываем цитату
         if (msg.reply_to) {
             let replyDiv = document.createElement('div');
+            replyDiv.className = 'reply-indicator';
             replyDiv.style.fontSize = '12px';
-            replyDiv.style.opacity = '0.7';
-            replyDiv.textContent = '↩️ ответ на сообщение';
+            replyDiv.style.opacity = '0.8';
+            replyDiv.style.marginBottom = '2px';
+            replyDiv.style.padding = '2px 8px';
+            replyDiv.style.borderLeft = '3px solid #3390ec';
+            replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
+            replyDiv.style.borderRadius = '4px';
+            replyDiv.textContent = `↩️ Ответ на сообщение`; // В реальном проекте можно подгрузить текст
             w.appendChild(replyDiv);
         }
+
         let md = document.createElement('div');
         md.className = `message ${msg.isMe ? 'own' : ''}`;
         if (msg.image) {
@@ -1809,6 +1859,7 @@
         let f = document.createElement('div');
         f.className = 'message-footer';
 
+        // Кнопка реакций (пока оставим, но реакции не отправляются – можно будет добавить позже)
         let r = document.createElement('button');
         r.className = 'reaction-btn';
         let reactions = msg.reactions || {};
@@ -1823,13 +1874,14 @@
         };
         f.appendChild(r);
 
+        // Кнопка ответа
         let replyBtn = document.createElement('button');
         replyBtn.className = 'reply-btn';
         replyBtn.innerHTML = '↩️';
         replyBtn.onclick = (e) => {
             e.stopPropagation();
             replyToMessage = msg;
-            messageInput.placeholder = `Ответ на ${msg.sender === currentUser.phone ? 'своё сообщение' : 'сообщение'}`;
+            showReplyBar(msg);
         };
         f.appendChild(replyBtn);
 
@@ -1845,13 +1897,20 @@
         w.className = 'message-wrapper';
         w.dataset.id = msg.id;
         w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+
         if (msg.reply_to) {
             let replyDiv = document.createElement('div');
             replyDiv.style.fontSize = '12px';
             replyDiv.style.opacity = '0.7';
-            replyDiv.textContent = '↩️ ответ на сообщение';
+            replyDiv.style.marginBottom = '2px';
+            replyDiv.style.padding = '2px 8px';
+            replyDiv.style.borderLeft = '3px solid #3390ec';
+            replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
+            replyDiv.style.borderRadius = '4px';
+            replyDiv.textContent = '↩️ Ответ на сообщение';
             w.appendChild(replyDiv);
         }
+
         let md = document.createElement('div');
         md.className = `message ${msg.isMe ? 'own' : ''}`;
         if (msg.image) {
@@ -1886,7 +1945,7 @@
         replyBtn.onclick = (e) => {
             e.stopPropagation();
             replyToMessage = msg;
-            messageInput.placeholder = `Ответ на ${msg.sender === currentUser.phone ? 'своё сообщение' : 'сообщение'}`;
+            showReplyBar(msg);
         };
         f.appendChild(replyBtn);
 
@@ -1918,7 +1977,7 @@
         currentReactionMsg = null;
     };
 
-    // ---------- ⭐ УПРОЩЁННАЯ ОТПРАВКА СООБЩЕНИЯ (без reactions, reacted_by, reply_to) ----------
+    // ---------- Отправка сообщения с поддержкой ответа ----------
     sendButton.onclick = async ()=> {
         let text = messageInput.value.trim();
         if (!text || !currentUser) return;
@@ -1928,22 +1987,21 @@
             sender: currentUser.phone,
             text: text,
             time: new Date().toISOString()
-            // reactions: {},       // временно убрано
-            // reacted_by: []       // временно убрано
         };
-        // if (replyToMessage) {   // временно отключена функция ответов
-        //     msgObj.reply_to = replyToMessage.id;
-        // }
-        console.log('📤 Отправка (упрощённая):', msgObj);
+        if (replyToMessage) {
+            msgObj.reply_to = replyToMessage.id;
+        }
+        console.log('📤 Отправка:', msgObj);
         await supabaseClient
             .from('messages')
             .insert([msgObj]);
         messageInput.value = '';
+        // Убираем плашку ответа, если она была
+        let bar = document.getElementById('replyBar');
+        if (bar) bar.remove();
         replyToMessage = null;
         messageInput.placeholder = 'Сообщение...';
     };
-    // --------------------------------------------------------------------------------
-
     messageInput.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); sendButton.click(); } };
 
     // ---------- Прокрутка для пагинации ----------
@@ -2252,7 +2310,7 @@
         }
         friendsView.appendChild(friendsSection);
 
-        // Входящие заявки (оставляем как есть, они не вызывали ошибок)
+        // Входящие заявки (оставляем как есть)
         let incomingSection = document.createElement('div');
         incomingSection.className = 'friend-section';
         incomingSection.innerHTML = '<h3>Входящие заявки</h3>';
