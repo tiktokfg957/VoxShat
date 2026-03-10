@@ -803,9 +803,7 @@
                 <input type="file" id="fileInput" accept="image/*" style="display:none;">
             </div>
         </div>
-    </div>
-
-    <!-- Модальные окна -->
+    </div>    <!-- Модальные окна -->
     <div class="modal" id="registerModal">
         <div class="modal-content">
             <h3>Регистрация</h3>
@@ -929,9 +927,7 @@
             <button id="voxStyleBtn" style="padding:10px;margin:5px;background:linear-gradient(135deg,#ee7752,#e73c7e);color:#fff;border:none;border-radius:20px;width:100%;">Градиент (VoxShat)</button>
             <button id="closeStyleModal" style="padding:10px;margin:5px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Закрыть</button>
         </div>
-    </div>
-
-    <!-- Подключение Supabase -->
+    </div>    <!-- Подключение Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>(function() {
     // ================== НАСТРОЙКИ SUPABASE ==================
@@ -945,7 +941,7 @@
     // ---------- Глобальные переменные ----------
     let currentUser = null;
     let currentUserPhone = null;
-    let currentContactId = 'bot_ai'; // теперь по умолчанию бот с ИИ
+    let currentContactId = ''; // теперь без бота по умолчанию пусто
     let currentMode = 'chats';
     let unsubscribeMessages = null;
     let unsubscribeTyping = null;
@@ -974,18 +970,8 @@
     if ('Notification' in window && Notification.permission === 'granted') notificationPermission = true;
     else if (Notification.permission !== 'denied') Notification.requestPermission();
 
-    // ---------- Боты и создатель ----------
-    const creatorPhone = '+79016135086'; // ЗАМЕНИТЕ НА СВОЙ НОМЕР
-    const aiBotPhone = 'bot_ai';
-    const aiBot = {
-        phone: aiBotPhone,
-        username: 'VoxShat_ai',
-        name: 'VoxShat AI',
-        avatar: null,
-        badges: { blue: true, red: false }
-    };
-
-    // ---------- Элементы DOM ----------
+    // ---------- Боты и создатель ---------- (удалено всё)
+    // (пусто)    // ---------- Элементы DOM ----------
     const loginScreen = document.getElementById('loginScreen');
     const app = document.getElementById('app');
     const phoneInput = document.getElementById('phoneInput');
@@ -1135,11 +1121,11 @@
     closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
     populateCountryList();
 
-    // ---------- Автоопределение страны через ipinfo.io (токен вставлен) ----------
+    // ---------- Автоопределение страны через ipinfo.io ----------
     fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
         .then(res => res.json())
         .then(data => {
-            const countryCode = data.country; // для ipinfo возвращает "RU", "US" и т.д.
+            const countryCode = data.country;
             if (countryCode === 'RU') currentCountry = countries[0];
             else if (countryCode === 'BY') currentCountry = countries[1];
             else if (countryCode === 'UA') currentCountry = countries[2];
@@ -1218,7 +1204,9 @@
         document.addEventListener('click', updateLastSeen);
         document.addEventListener('scroll', updateLastSeen);
         document.addEventListener('keydown', updateLastSeen);
-    }    // ---------- Вход / регистрация с поддержкой старых паролей ----------
+    }
+
+    // ---------- Вход / регистрация с поддержкой старых паролей ----------
     function updateLoginButtonState() {
         let phoneValid = validatePhone(phoneInput.value);
         let pwdValid = passwordInput.value.length >= 3;
@@ -1302,19 +1290,7 @@
                     setTimeout(() => app.classList.add('visible'), 50);
                 }, 300);
                 afterLogin(phone);
-                // Приветственное сообщение от ИИ-бота
-                await supabaseClient
-                    .from('messages')
-                    .insert([{
-                        chat_id: aiBotPhone,
-                        sender: aiBotPhone,
-                        text: '👋 Добро пожаловать в VoxChat! Я бот-помощник с искусственным интеллектом. Я могу:\n' +
-                              '• отвечать на ваши вопросы,\n' +
-                              '• помогать с проблемами,\n' +
-                              '• передавать жалобы создателю.\n' +
-                              'Просто напишите мне!',
-                        time: new Date().toISOString()
-                    }]);
+                // Приветственное сообщение от бота УДАЛЕНО
             };
             cancelRegister.onclick = ()=> { registerModal.style.display = 'none'; };
         }
@@ -1332,6 +1308,14 @@
         renderContacts();
         renderFriendsView();
         renderChannelsList();
+        // Если есть друзья, открываем первый чат, иначе оставляем пустым
+        if (currentUser.friends.list.length > 0) {
+            switchContact(currentUser.friends.list[0]);
+        } else {
+            clearChatArea();
+            chatHeaderTitle.textContent = 'Нет чатов';
+            chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
+        }
     }
 
     logoutBtn.addEventListener('click', ()=> {
@@ -1358,7 +1342,7 @@
         document.getElementById('debugInfo').innerHTML = '';
     });
 
-    // ---------- Забыли пароль ----------
+    // ---------- Забыли пароль ---------- (без изменений)
     forgotPasswordLink.addEventListener('click', (e) => {
         e.preventDefault();
         resetModal.style.display = 'flex';
@@ -1370,7 +1354,7 @@
     sendResetCodeBtn.addEventListener('click', () => {
         let phone = resetPhone.value.trim();
         if (validatePhone(phone)) {
-            // Имитация отправки кода (в реальном проекте надо через SMS)
+            // Имитация отправки кода
             resetCode = Math.floor(1000 + Math.random() * 9000).toString();
             alert(`Код подтверждения: ${resetCode}`);
         } else {
@@ -1383,7 +1367,6 @@
         let code = resetCodeInput.value.trim();
         if (!validatePhone(phone)) { alert('Некорректный номер'); return; }
         if (code !== resetCode) { alert('Неверный код'); return; }
-        // Сохраняем номер для смены пароля
         window.resetPhoneForPassword = phone;
         resetModal.style.display = 'none';
         newPasswordModal.style.display = 'flex';
@@ -1413,7 +1396,7 @@
 
     cancelNewPasswordBtn.addEventListener('click', () => { newPasswordModal.style.display = 'none'; });
 
-    // ---------- Профиль ----------
+    // ---------- Профиль ---------- (без изменений)
     profileAvatarInput.onchange = function(e) {
         let file = e.target.files[0];
         if (file) {
@@ -1449,7 +1432,7 @@
         }
     }
 
-    // ---------- Premium ----------
+    // ---------- Premium ---------- (без изменений)
     showPremiumBtn.addEventListener('click', ()=> { premiumModal.style.display = 'flex'; });
     closePremiumModal.addEventListener('click', ()=> { premiumModal.style.display = 'none'; });
     document.querySelectorAll('.premium-option').forEach(btn => {
@@ -1475,7 +1458,7 @@
         });
     });
 
-    // ---------- Удаление аккаунта ----------
+    // ---------- Удаление аккаунта ---------- (без изменений)
     deleteAccountBtn.addEventListener('click', async () => {
         if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
         await supabaseClient
@@ -1518,7 +1501,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });        // ---------- Переключение режимов ----------
+    });    // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -1533,11 +1516,14 @@
             chatsModeBtn.classList.add('active');
             contactsListEl.style.display = 'block';
             renderContacts();
-            if (!currentContactId || currentContactId.startsWith('channel_')) {
+            // Если нет активного контакта, но есть друзья, открываем первого
+            if (!currentContactId || currentContactId === '') {
                 if (currentUser && currentUser.friends && currentUser.friends.list.length > 0) {
                     switchContact(currentUser.friends.list[0]);
                 } else {
-                    switchContact(aiBotPhone);
+                    clearChatArea();
+                    chatHeaderTitle.textContent = 'Нет чатов';
+                    chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
                 }
             }
         } else if (mode === 'channels') {
@@ -1545,6 +1531,7 @@
             channelsListEl.style.display = 'block';
             channelActions.style.display = 'flex';
             renderChannelsList();
+            clearChatArea();
         } else if (mode === 'friends') {
             friendsModeBtn.classList.add('active');
             friendsView.style.display = 'block';
@@ -1571,22 +1558,9 @@
     profileModeBtn.onclick = ()=> initMode('profile');
     settingsModeBtn.onclick = ()=> initMode('settings');
 
-    // ---------- Контакты (только ИИ-бот и друзья) ----------
+    // ---------- Контакты (только друзья) ----------
     async function renderContacts() {
         contactsListEl.innerHTML = '';
-
-        // ИИ-бот
-        let aiBotDiv = document.createElement('div');
-        aiBotDiv.className = `contact ${currentContactId === aiBotPhone ? 'active' : ''}`;
-        aiBotDiv.innerHTML = `
-            <div class="contact-avatar">🤖</div>
-            <div class="contact-info">
-                <div class="contact-name">${aiBot.name} <span class="verified blue">✓</span></div>
-                <div class="contact-status">онлайн</div>
-            </div>
-        `;
-        aiBotDiv.onclick = ()=> switchContact(aiBotPhone);
-        contactsListEl.appendChild(aiBotDiv);
 
         // Друзья
         if (currentUser && currentUser.friends && currentUser.friends.list) {
@@ -1639,39 +1613,31 @@
         messagesOffset = 0;
         hasMoreMessages = true;
 
-        if (id === aiBotPhone) {
-            chatHeaderTitle.innerHTML = `${aiBot.name} <span class="verified blue">✓</span>`;
-            chatHeaderSubtitle.textContent = '';
-            typingIndicator.textContent = '';
-            subscribeToMessages(aiBotPhone);
-            subscribeToTyping(aiBotPhone);
-        } else {
-            supabaseClient
-                .from('users')
-                .select('name, username, badges, last_seen')
-                .eq('phone', id)
-                .single()
-                .then(({ data: friend }) => {
-                    if (friend) {
-                        let badges = '';
-                        if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
-                        if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
-                        chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
-                        let status = 'онлайн';
-                        if (friend.last_seen) {
-                            let diff = Date.now() - new Date(friend.last_seen).getTime();
-                            if (diff > 120000) {
-                                let date = new Date(friend.last_seen);
-                                status = 'был ' + date.toLocaleTimeString().slice(0,5);
-                            }
+        supabaseClient
+            .from('users')
+            .select('name, username, badges, last_seen')
+            .eq('phone', id)
+            .single()
+            .then(({ data: friend }) => {
+                if (friend) {
+                    let badges = '';
+                    if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                    if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
+                    chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
+                    let status = 'онлайн';
+                    if (friend.last_seen) {
+                        let diff = Date.now() - new Date(friend.last_seen).getTime();
+                        if (diff > 120000) {
+                            let date = new Date(friend.last_seen);
+                            status = 'был ' + date.toLocaleTimeString().slice(0,5);
                         }
-                        chatHeaderSubtitle.textContent = status;
                     }
-                });
-            typingIndicator.textContent = '';
-            subscribeToMessages(id);
-            subscribeToTyping(id);
-        }
+                    chatHeaderSubtitle.textContent = status;
+                }
+            });
+        typingIndicator.textContent = '';
+        subscribeToMessages(id);
+        subscribeToTyping(id);
         chatHeaderActions.innerHTML = '';
         chatInput.style.display = 'flex';
         messageInput.disabled = false;
@@ -1712,16 +1678,16 @@
         sendTyping();
     });
 
-    // ---------- Сообщения с исправленной функцией getChatId ----------
+    // ---------- Сообщения с исправленной функцией getChatId (без бота) ----------
     function getChatId(contactId) {
         if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
-        if (contactId === aiBotPhone) return aiBotPhone; // чат с ботом
+        // Для личных сообщений: если номер телефона (начинается с +)
         if (contactId.startsWith('+')) {
             if (!currentUser) return '';
             return `private_${[currentUser.phone, contactId].sort().join('_')}`;
         }
-        return contactId; // канал
+        return contactId; // канал (id может быть числом или строкой)
     }
 
     async function loadMessages(chatId, loadMore = false) {
@@ -2029,10 +1995,10 @@
         currentReactionMsg = null;
     };
 
-    // ---------- Отправка сообщения с поддержкой ответа и ИИ-бота ----------
+    // ---------- Отправка сообщения (без бота) ----------
     sendButton.onclick = async ()=> {
         let text = messageInput.value.trim();
-        if (!text || !currentUser) return;
+        if (!text || !currentUser || !currentContactId) return;
         let chatId = getChatId(currentContactId);
         let msgObj = {
             chat_id: chatId,
@@ -2048,31 +2014,7 @@
             .from('messages')
             .insert([msgObj]);
 
-        // Если сообщение отправлено боту, генерируем ответ
-        if (currentContactId === aiBotPhone && currentUser.phone !== aiBotPhone) {
-            setTimeout(async () => {
-                let replyText = generateAIResponse(text);
-                let replyMsg = {
-                    chat_id: chatId,
-                    sender: aiBotPhone,
-                    text: replyText,
-                    time: new Date().toISOString()
-                };
-                await supabaseClient.from('messages').insert([replyMsg]);
-            }, 1000);
-        }
-
-        // Если это жалоба (можно добавить ключевые слова), дублируем создателю
-        if (currentContactId === aiBotPhone && (text.toLowerCase().includes('ошибк') || text.toLowerCase().includes('проблем'))) {
-            let creatorChatId = `private_${[currentUser.phone, creatorPhone].sort().join('_')}`;
-            let forwardMsg = {
-                chat_id: creatorChatId,
-                sender: currentUser.phone,
-                text: `📢 Жалоба от ${currentUser.phone}:\n${text}`,
-                time: new Date().toISOString()
-            };
-            await supabaseClient.from('messages').insert([forwardMsg]);
-        }
+        // Весь блок с ИИ-ботом и жалобами удалён
 
         messageInput.value = '';
         let bar = document.getElementById('replyBar');
@@ -2080,61 +2022,6 @@
         replyToMessage = null;
         messageInput.placeholder = 'Сообщение...';
     };
-
-    // Умный ИИ-бот с расширенной логикой
-    function generateAIResponse(userText) {
-        let lower = userText.toLowerCase().trim();
-
-        // Приветствия
-        if (lower.match(/^(привет|здравствуй|здравствуйте|хай|hello|hi)/)) {
-            return '👋 Привет! Я бот-помощник VoxShat_ai. Чем могу помочь? Напиши "помощь", чтобы узнать мои возможности.';
-        }
-
-        // Вопросы о возможностях
-        if (lower.includes('помощь') || lower.includes('что ты умеешь') || lower.includes('можешь')) {
-            return 'Я могу:\n• отвечать на вопросы о VoxChat,\n• помогать с настройкой,\n• принимать жалобы и передавать их разработчику.\nЕсли я не смогу помочь, напишите "жалоба" – мы отправим сообщение создателю.';
-        }
-
-        // Вопросы о разработчике / создателе
-        if (lower.includes('создатель') || lower.includes('разработчик') || lower.includes('кто сделал')) {
-            return 'VoxChat создан талантливым разработчиком. По всем вопросам можно писать на почту voxshat@gmail.com.';
-        }
-
-        // Жалобы и проблемы
-        if (lower.includes('жалоба') || lower.includes('проблем') || lower.includes('ошибк') || lower.includes('не работ') || lower.includes('баг')) {
-            return 'Опишите вашу проблему подробнее, и я передам её разработчику. Вы также можете написать напрямую на voxshat@gmail.com.';
-        }
-
-        // Вопросы о функционале
-        if (lower.includes('как создать канал') || lower.includes('как сделать канал')) {
-            return 'Чтобы создать канал, перейдите во вкладку "Каналы" и нажмите "➕ Создать канал". Укажите название и @юзернейм.';
-        }
-        if (lower.includes('как добавить друга') || lower.includes('добавить друга')) {
-            return 'Перейдите во вкладку "Друзья", нажмите "➕ Добавить друга" и введите @юзернейм пользователя.';
-        }
-        if (lower.includes('как отправить сообщение')) {
-            return 'Выберите чат с пользователем в левой панели, введите текст и нажмите кнопку отправки (➤) или Enter.';
-        }
-        if (lower.includes('как поставить реакцию')) {
-            return 'Наведите на сообщение и нажмите на сердечко ❤️, затем выберите нужную реакцию.';
-        }
-        if (lower.includes('что такое премиум')) {
-            return 'Premium даёт красную галочку и поддерживает разработчика. Подробнее в разделе "Профиль".';
-        }
-
-        // Благодарности
-        if (lower.includes('спасибо')) {
-            return 'Пожалуйста! Рад помочь. Обращайтесь ещё.';
-        }
-
-        // Прощания
-        if (lower.includes('пока') || lower.includes('до свидания') || lower.includes('до встречи')) {
-            return 'До свидания! Если что, я здесь.';
-        }
-
-        // По умолчанию
-        return 'Я вас понял. Если у вас есть вопрос, задайте его, или напишите "жалоба", чтобы сообщить о проблеме. Также можете написать нам на почту voxshat@gmail.com.';
-    }
 
     messageInput.onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); sendButton.click(); } };
 
@@ -2145,7 +2032,7 @@
         }
     });
 
-    // ---------- Каналы с поиском и настройками ----------
+    // ---------- Каналы с поиском и настройками (без изменений, кроме удаления упоминаний бота) ----------
     let allChannelsData = [];
     async function renderChannelsList(searchTerm = '') {
         let { data: channels } = await supabaseClient
@@ -2242,7 +2129,7 @@
         }
     }
 
-    // Сохранение настроек канала
+    // Сохранение настроек канала (без изменений)
     saveChannelSettings.onclick = async () => {
         let chId = window.currentChannelForSettings;
         if (!chId) return;
@@ -2300,7 +2187,7 @@
         channelSettingsModal.style.display = 'none';
     };
 
-    // Создание канала
+    // Создание канала (без изменений)
     createChannelBtn.onclick = ()=> createChannelModal.style.display = 'flex';
     confirmCreateChannel.onclick = async ()=> {
         let name = channelNameInput.value.trim();
@@ -2405,7 +2292,7 @@
         allChannelsModal.style.display = 'none';
     };
 
-    // ---------- Друзья ----------
+    // ---------- Друзья ---------- (без изменений, кроме удаления бота)
     function renderFriendsView() {
         ensureFriends(currentUser);
         friendsView.innerHTML = '';
