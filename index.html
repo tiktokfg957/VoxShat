@@ -1704,13 +1704,19 @@
         if (contactId === undefined || contactId === null) return '';
         contactId = String(contactId);
         if (contactId === 'bot') return 'bot';
-        if (contactId.startsWith('channel_')) return contactId;
-        return `private_${[currentUser.phone, contactId].sort().join('_')}`;
+        // Для канала contactId уже является строкой с числовым id
+        // Не добавляем префикс 'channel_', так как в базе chat_id = id канала (число, но в строке)
+        if (contactId.startsWith('channel_')) {
+            // Если вдруг есть префикс, убираем его? В текущей реализации id канала не содержит префикса.
+            // Возвращаем как есть.
+        }
+        return contactId; // для канала просто id
     }
 
     async function loadMessages(chatId, loadMore = false) {
         if (isLoadingMessages) return;
         isLoadingMessages = true;
+        console.log('📜 Загрузка сообщений для chatId:', chatId, 'loadMore:', loadMore);
         if (!loadMore) {
             messagesOffset = 0;
             messagesContainer.innerHTML = '';
@@ -1729,7 +1735,7 @@
             .range(messagesOffset, messagesOffset + messagesLimit - 1);
         let { data: msgs, error } = await query;
         if (error) {
-            console.error(error);
+            console.error('Ошибка загрузки сообщений:', error);
             isLoadingMessages = false;
             return;
         }
@@ -1753,6 +1759,7 @@
 
     function subscribeToMessages(contactId) {
         let chatId = getChatId(contactId);
+        console.log('📡 Подписка на чат/канал:', chatId);
         loadMessages(chatId, false);
 
         if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
@@ -1771,12 +1778,15 @@
                     filter: `chat_id=eq.${chatId}`
                 },
                 (payload) => {
+                    console.log('🔥 Новое сообщение через Realtime:', payload);
                     let newMsg = payload.new;
                     newMsg.isMe = (newMsg.sender === currentUser.phone);
                     appendMessage(newMsg);
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('🔌 Статус подписки:', status);
+            });
     }
 
     // Функция показа плашки ответа
@@ -1822,7 +1832,6 @@
         messageInput.placeholder = 'Ваш ответ...';
     }
 
-    // Обновлённая функция appendMessage с загрузкой текста исходного сообщения
     function appendMessage(msg) {
         let w = document.createElement('div');
         w.className = 'message-wrapper';
@@ -1908,7 +1917,6 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Обновлённая функция prependMessage (для пагинации)
     function prependMessage(msg) {
         let w = document.createElement('div');
         w.className = 'message-wrapper';
@@ -2022,7 +2030,7 @@
         if (replyToMessage) {
             msgObj.reply_to = replyToMessage.id;
         }
-        console.log('📤 Отправка:', msgObj);
+        console.log('📤 Отправка в chatId:', chatId, 'объект:', msgObj);
         await supabaseClient
             .from('messages')
             .insert([msgObj]);
@@ -2042,7 +2050,7 @@
         }
     });
 
-    // ---------- Каналы с поиском и настройками (исправленные) ----------
+    // ---------- Каналы с поиском и настройками ----------
     let allChannelsData = [];
     async function renderChannelsList(searchTerm = '') {
         let { data: channels } = await supabaseClient
@@ -2088,6 +2096,7 @@
             unsubscribeMessages = null;
         }
         currentContactId = String(chId);
+        console.log('📢 Переключение на канал, chId =', chId);
         renderChannelsList(channelSearchInput.value);
         let { data: ch } = await supabaseClient
             .from('channels')
@@ -2272,7 +2281,7 @@
         renderAllChannels(e.target.value);
     });
 
-    // ---------- Друзья (исправленные блоки) ----------
+    // ---------- Друзья ----------
     function renderFriendsView() {
         ensureFriends(currentUser);
         friendsView.innerHTML = '';
@@ -2293,7 +2302,7 @@
         };
         friendsView.appendChild(addBtn);
 
-        // Мои друзья (исправленный блок)
+        // Мои друзья
         let friendsSection = document.createElement('div');
         friendsSection.className = 'friend-section';
         friendsSection.innerHTML = '<h3>Мои друзья</h3>';
@@ -2341,7 +2350,7 @@
         }
         friendsView.appendChild(friendsSection);
 
-        // Входящие заявки (оставляем как есть)
+        // Входящие заявки
         let incomingSection = document.createElement('div');
         incomingSection.className = 'friend-section';
         incomingSection.innerHTML = '<h3>Входящие заявки</h3>';
@@ -2384,7 +2393,7 @@
         }
         friendsView.appendChild(incomingSection);
 
-        // Исходящие заявки (аналогично)
+        // Исходящие заявки
         let outgoingSection = document.createElement('div');
         outgoingSection.className = 'friend-section';
         outgoingSection.innerHTML = '<h3>Исходящие заявки</h3>';
