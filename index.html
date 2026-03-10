@@ -1508,7 +1508,7 @@
             .eq('phone', currentUser.phone);
         alert('Аккаунт удалён. До свидания!');
         logoutBtn.click();
-    });    // ---------- Переключение режимов ----------
+    });        // ---------- Переключение режимов ----------
     function initMode(mode) {
         currentMode = mode;
         [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
@@ -1707,7 +1707,6 @@
         // Если это номер телефона (начинается с +), то это личный чат
         if (contactId.startsWith('+')) {
             if (!currentUser) return '';
-            // Сортируем номера для единообразия
             return `private_${[currentUser.phone, contactId].sort().join('_')}`;
         }
         // Иначе это канал (числовой id)
@@ -2003,13 +2002,18 @@
             let msg = currentReactionMsg;
             let reactions = msg.reactions || {};
             reactions[reaction] = (reactions[reaction] || 0) + 1;
-            await supabaseClient
-                .from('messages')
-                .update({ reactions: reactions })
-                .eq('id', msg.id);
-            reactionPickerModal.style.display = 'none';
-            currentReactionMsg = null;
-            showFloatingReaction(reaction, window.innerWidth/2, window.innerHeight/2);
+            try {
+                await supabaseClient
+                    .from('messages')
+                    .update({ reactions: reactions })
+                    .eq('id', msg.id);
+                reactionPickerModal.style.display = 'none';
+                currentReactionMsg = null;
+                showFloatingReaction(reaction, window.innerWidth/2, window.innerHeight/2);
+            } catch (error) {
+                console.error('Ошибка при обновлении реакции:', error);
+                alert('Не удалось поставить реакцию. Возможно, отсутствует колонка reactions в таблице messages.');
+            }
         };
     });
     closeReactionPicker.onclick = () => {
@@ -2241,15 +2245,30 @@
         channelUsernameInput.value = '';
     };
 
-    // Поиск всех каналов (модалка)
-    async function renderAllChannels(search = '') {
+    // ---------- Поиск всех каналов (кнопка "Все каналы") ----------
+    // Создаём кнопку, если её нет
+    let allChannelsBtn = document.getElementById('showAllChannelsBtn');
+    if (!allChannelsBtn) {
+        allChannelsBtn = document.createElement('button');
+        allChannelsBtn.id = 'showAllChannelsBtn';
+        allChannelsBtn.textContent = '📢 Все каналы';
+        allChannelsBtn.style.margin = '10px';
+        allChannelsBtn.style.padding = '10px';
+        allChannelsBtn.style.width = 'calc(100% - 20px)';
+        allChannelsBtn.style.border = 'none';
+        allChannelsBtn.style.borderRadius = '20px';
+        allChannelsBtn.style.background = '#2b5278';
+        allChannelsBtn.style.color = '#fff';
+        allChannelsBtn.style.cursor = 'pointer';
+        document.querySelector('.channel-actions').appendChild(allChannelsBtn);
+    }
+
+    allChannelsBtn.onclick = async () => {
         let { data: allChannels } = await supabaseClient
             .from('channels')
             .select('*');
         allChannelsList.innerHTML = '';
         (allChannels || []).forEach(ch => {
-            if (!ch.name.toLowerCase().includes(search.toLowerCase()) && 
-                !(ch.username && ch.username.toLowerCase().includes(search.toLowerCase()))) return;
             let div = document.createElement('div');
             div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
             let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
@@ -2276,11 +2295,8 @@
             div.appendChild(btn);
             allChannelsList.appendChild(div);
         });
-    }
-
-    allChannelsSearch.addEventListener('input', (e) => {
-        renderAllChannels(e.target.value);
-    });
+        allChannelsModal.style.display = 'flex';
+    };
 
     // ---------- Друзья ----------
     function renderFriendsView() {
