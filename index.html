@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>VoxChat — мессенджер (полная версия)</title>
+    <title>VoxChat — локальная версия</title>
     <!-- CryptoJS для хеширования паролей -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
     <style>
-        /* --- Все стили из исходной версии (без изменений) --- */
+        /* --- Все стили из предыдущей версии (без изменений) --- */
         *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;}
         body{height:100vh;display:flex;justify-content:center;align-items:center;background:#0e1621;transition:background 0.3s;}
         body.dark{background:#0e1621;}
@@ -195,7 +195,10 @@
 <body class="dark classic-style">
     <!-- Экран входа -->
     <div class="login-screen" id="loginScreen">
-        <h2>Вход в VoxChat <span class="settings-icon" id="openSettingsBtn">⚙️</span></h2>
+        <h2>
+            Вход в VoxChat
+            <span class="settings-icon" id="openSettingsBtn">⚙️</span>
+        </h2>
         <div class="region-selector">
             <span>Ваш регион:</span>
             <button id="selectCountryBtn">🌍 Определение... ▼</button>
@@ -299,7 +302,7 @@
         </div>
     </div>
 
-    <!-- Модальные окна (полный набор) -->
+    <!-- Модальные окна -->
     <div class="modal" id="registerModal"><div class="modal-content"><h3>Регистрация</h3><p>Номер не найден. Придумайте пароль (мин.6 символов, буквы+цифры).</p><input type="password" id="registerPassword" placeholder="Пароль"><input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль"><div><button id="confirmRegister" disabled>Зарегистрироваться</button><button id="cancelRegister">Отмена</button></div></div></div>
     <div class="modal" id="resetModal"><div class="modal-content"><h3>Сброс пароля</h3><p>Введите номер и код из SMS</p><input type="tel" id="resetPhone" placeholder="+7 999 123-45-67"><input type="text" id="resetCode" placeholder="Код подтверждения"><div><button id="sendResetCodeBtn">Отправить код</button></div><div><button id="verifyResetBtn">Проверить код и сбросить</button></div><div><button id="cancelResetBtn">Отмена</button></div></div></div>
     <div class="modal" id="newPasswordModal"><div class="modal-content"><h3>Новый пароль</h3><input type="password" id="newPassword" placeholder="Новый пароль"><input type="password" id="newPasswordConfirm" placeholder="Повторите пароль"><div><button id="setNewPasswordBtn">Сохранить</button><button id="cancelNewPasswordBtn">Отмена</button></div></div></div>
@@ -312,720 +315,617 @@
     <div class="modal" id="reactionPickerModal"><div class="modal-content" style="width:300px;"><h3>Выберите реакцию</h3><div style="display:flex;justify-content:space-around;padding:10px;"><button class="reaction-option" data-reaction="❤️" style="font-size:30px;background:none;border:none;">❤️</button><button class="reaction-option" data-reaction="👍" style="font-size:30px;background:none;border:none;">👍</button><button class="reaction-option" data-reaction="😂" style="font-size:30px;background:none;border:none;">😂</button><button class="reaction-option" data-reaction="😮" style="font-size:30px;background:none;border:none;">😮</button><button class="reaction-option" data-reaction="😢" style="font-size:30px;background:none;border:none;">😢</button><button class="reaction-option" data-reaction="😡" style="font-size:30px;background:none;border:none;">😡</button></div><button id="closeReactionPicker" style="margin-top:10px;padding:8px;background:#f44336;color:#fff;border:none;border-radius:20px;">Отмена</button></div></div>
     <div class="modal" id="styleModal"><div class="modal-content"><h3>Выберите стиль оформления</h3><button id="classicStyleBtn" style="padding:10px;margin:5px;background:#2b5278;color:#fff;border:none;border-radius:20px;width:100%;">Классический (Telegram)</button><button id="voxStyleBtn" style="padding:10px;margin:5px;background:linear-gradient(135deg,#ee7752,#e73c7e);color:#fff;border:none;border-radius:20px;width:100%;">Градиент (VoxShat)</button><button id="closeStyleModal" style="padding:10px;margin:5px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Закрыть</button></div></div>
 
-    <!-- Подключение Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-    (function() {
-        // ================== НАСТРОЙКИ SUPABASE ==================
-        const supabaseUrl = 'https://yczrkdbyssogvqmwylow.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljenJrZGJ5c3NvZ3ZxbXd5bG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODM3MjcsImV4cCI6MjA4ODU1OTcyN30.hW5tWQA6qS8pKYhR_vUJ5EmWy414MjhTH3ktHEikMpk';
-        // ========================================================
+        (function() {
+            // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+            let currentUser = null;
+            let currentUserPhone = null;
+            let currentContactId = ''; // ID текущего чата (номер телефона или ID канала)
+            let currentMode = 'chats';
+            let activeTimers = {};
+            let resetCode = null;
+            let editMessageId = null;
+            let replyToMessage = null;
+            let isLoadingMessages = false;
+            let hasMoreMessages = true;
+            const messagesLimit = 30;
+            let messagesOffset = 0;
+            let friendsCache = new Map(); // для быстрого доступа к данным друзей
 
-        const { createClient } = supabase;
-        let supabaseClient;
-        let useLocalFallback = false;
-
-        // Проверка подключения к Supabase
-        async function checkSupabaseConnection() {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-                const response = await fetch(supabaseUrl, { method: 'HEAD', signal: controller.signal });
-                clearTimeout(timeoutId);
-                if (response.ok) {
-                    supabaseClient = createClient(supabaseUrl, supabaseKey);
-                    console.log('✅ Подключение к Supabase установлено');
-                    return true;
-                } else {
-                    throw new Error('Сервер вернул ошибку');
-                }
-            } catch (e) {
-                console.warn('⚠️ Supabase недоступен, переключаемся на локальное хранилище', e);
-                useLocalFallback = true;
-                return false;
-            }
-        }
-
-        // Локальное хранилище
-        let localDB = {
-            users: JSON.parse(localStorage.getItem('voxchat_users')) || [],
-            messages: JSON.parse(localStorage.getItem('voxchat_messages')) || [],
-            channels: JSON.parse(localStorage.getItem('voxchat_channels')) || []
-        };
-
-        function saveLocalDB() {
-            localStorage.setItem('voxchat_users', JSON.stringify(localDB.users));
-            localStorage.setItem('voxchat_messages', JSON.stringify(localDB.messages));
-            localStorage.setItem('voxchat_channels', JSON.stringify(localDB.channels));
-        }
-
-        // ---------- Глобальные переменные ----------
-        let currentUser = null;
-        let currentUserPhone = null;
-        let currentContactId = '';
-        let currentMode = 'chats';
-        let unsubscribeMessages = null;
-        let unsubscribeTyping = null;
-        let unsubscribeMessageUpdates = null;
-        let activeTimers = {};
-        let resetCode = null;
-        let editMessageId = null;
-        let replyToMessage = null;
-        let isLoadingMessages = false;
-        let hasMoreMessages = true;
-        const messagesLimit = 30;
-        let messagesOffset = 0;
-        let friendsCache = new Map();
-
-        function showFloatingReaction(reaction, x, y) {
-            const div = document.createElement('div');
-            div.className = 'floating-reaction';
-            div.textContent = reaction;
-            div.style.left = x + 'px';
-            div.style.top = y + 'px';
-            document.body.appendChild(div);
-            setTimeout(() => div.remove(), 1000);
-        }
-
-        let notificationPermission = false;
-        if ('Notification' in window && Notification.permission === 'granted') notificationPermission = true;
-        else if (Notification.permission !== 'denied') Notification.requestPermission();
-
-        // ---------- Элементы DOM ----------
-        const loginScreen = document.getElementById('loginScreen');
-        const app = document.getElementById('app');
-        const phoneInput = document.getElementById('phoneInput');
-        const passwordInput = document.getElementById('passwordInput');
-        const loginBtn = document.getElementById('loginBtn');
-        const loginError = document.getElementById('loginError');
-        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-        const userPhoneDisplay = document.getElementById('userPhoneDisplay');
-        const premiumBadgeHeader = document.getElementById('premiumBadgeHeader');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const themeToggle = document.getElementById('themeToggle');
-        const chatsModeBtn = document.getElementById('chatsModeBtn');
-        const channelsModeBtn = document.getElementById('channelsModeBtn');
-        const friendsModeBtn = document.getElementById('friendsModeBtn');
-        const profileModeBtn = document.getElementById('profileModeBtn');
-        const settingsModeBtn = document.getElementById('settingsModeBtn');
-        const contactsListEl = document.getElementById('contactsList');
-        const channelsListEl = document.getElementById('channelsList');
-        const friendsView = document.getElementById('friendsView');
-        const profileView = document.getElementById('profileView');
-        const settingsView = document.getElementById('settingsView');
-        const profileUsername = document.getElementById('profileUsername');
-        const profileName = document.getElementById('profileName');
-        const profileAvatar = document.getElementById('profileAvatar');
-        const profileAvatarInput = document.getElementById('profileAvatarInput');
-        const profileSaveBtn = document.getElementById('profileSaveBtn');
-        const showPremiumBtn = document.getElementById('showPremiumBtn');
-        const premiumStatus = document.getElementById('premiumStatus');
-        const channelActions = document.getElementById('channelActions');
-        const createChannelBtn = document.getElementById('createChannelBtn');
-        const chatHeaderTitle = document.getElementById('chatHeaderTitle');
-        const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
-        const typingIndicator = document.getElementById('typingIndicator');
-        const chatHeaderActions = document.getElementById('chatHeaderActions');
-        const messagesContainer = document.getElementById('messagesContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const micButton = document.getElementById('micButton');
-        const emojiButton = document.getElementById('emojiButton');
-        const emojiPicker = document.getElementById('emojiPicker');
-        const attachButton = document.getElementById('attachButton');
-        const fileInput = document.getElementById('fileInput');
-        const chatInput = document.getElementById('chatInput');
-        const createChannelModal = document.getElementById('createChannelModal');
-        const channelNameInput = document.getElementById('channelNameInput');
-        const channelUsernameInput = document.getElementById('channelUsernameInput');
-        const channelAvatarInput = document.getElementById('channelAvatarInput');
-        const confirmCreateChannel = document.getElementById('confirmCreateChannel');
-        const cancelCreateChannel = document.getElementById('cancelCreateChannel');
-        const allChannelsModal = document.getElementById('allChannelsModal');
-        const allChannelsList = document.getElementById('allChannelsList');
-        const closeAllChannelsModal = document.getElementById('closeAllChannelsModal');
-        const registerModal = document.getElementById('registerModal');
-        const registerPassword = document.getElementById('registerPassword');
-        const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
-        const confirmRegister = document.getElementById('confirmRegister');
-        const cancelRegister = document.getElementById('cancelRegister');
-        const resetModal = document.getElementById('resetModal');
-        const resetPhone = document.getElementById('resetPhone');
-        const resetCodeInput = document.getElementById('resetCode');
-        const sendResetCodeBtn = document.getElementById('sendResetCodeBtn');
-        const verifyResetBtn = document.getElementById('verifyResetBtn');
-        const cancelResetBtn = document.getElementById('cancelResetBtn');
-        const newPasswordModal = document.getElementById('newPasswordModal');
-        const newPassword = document.getElementById('newPassword');
-        const newPasswordConfirm = document.getElementById('newPasswordConfirm');
-        const setNewPasswordBtn = document.getElementById('setNewPasswordBtn');
-        const cancelNewPasswordBtn = document.getElementById('cancelNewPasswordBtn');
-        const statsSubscribers = document.getElementById('statsSubscribers');
-        const premiumModal = document.getElementById('premiumModal');
-        const closePremiumModal = document.getElementById('closePremiumModal');
-        const addFriendModal = document.getElementById('addFriendModal');
-        const friendUsername = document.getElementById('friendUsername');
-        const searchFriendBtn = document.getElementById('searchFriendBtn');
-        const closeAddFriendModal = document.getElementById('closeAddFriendModal');
-        const friendSearchResult = document.getElementById('friendSearchResult');
-        const editMessageModal = document.getElementById('editMessageModal');
-        const editMessageText = document.getElementById('editMessageText');
-        const saveEditBtn = document.getElementById('saveEditBtn');
-        const cancelEditBtn = document.getElementById('cancelEditBtn');
-        const deleteAccountBtn = document.getElementById('deleteAccountBtn');
-        const channelSettingsModal = document.getElementById('channelSettingsModal');
-        const channelSettingsName = document.getElementById('channelSettingsName');
-        const channelSettingsUsername = document.getElementById('channelSettingsUsername');
-        const channelSettingsAvatarInput = document.getElementById('channelSettingsAvatarInput');
-        const saveChannelSettings = document.getElementById('saveChannelSettings');
-        const closeChannelSettings = document.getElementById('closeChannelSettings');
-        const deleteChannelBtn = document.getElementById('deleteChannelBtn');
-        const channelSearchInput = document.getElementById('channelSearchInput');
-        const allChannelsSearch = document.getElementById('allChannelsSearch');
-
-        // Стили и страны
-        const openSettingsBtn = document.getElementById('openSettingsBtn');
-        const openSettingsAppBtn = document.getElementById('openSettingsAppBtn');
-        const styleModal = document.getElementById('styleModal');
-        const classicStyleBtn = document.getElementById('classicStyleBtn');
-        const voxStyleBtn = document.getElementById('voxStyleBtn');
-        const closeStyleModal = document.getElementById('closeStyleModal');
-        const selectCountryBtn = document.getElementById('selectCountryBtn');
-        const countryModal = document.getElementById('countryModal');
-        const countryList = document.getElementById('countryList');
-        const closeCountryModal = document.getElementById('closeCountryModal');
-        const reactionPickerModal = document.getElementById('reactionPickerModal');
-        const closeReactionPicker = document.getElementById('closeReactionPicker');
-        const reactionOptions = document.querySelectorAll('.reaction-option');
-        let currentReactionMsg = null;
-
-        const countries = [
-            { name: 'Россия', code: '+7', flag: '🇷🇺' },
-            { name: 'Беларусь', code: '+375', flag: '🇧🇾' },
-            { name: 'Украина', code: '+380', flag: '🇺🇦' },
-            { name: 'США', code: '+1', flag: '🇺🇸' },
-            { name: 'Казахстан', code: '+7', flag: '🇰🇿' }
-        ];
-
-        let currentCountry = countries[0];
-
-        function updateCountryButton() {
-            selectCountryBtn.innerHTML = `${currentCountry.flag} ${currentCountry.name} (${currentCountry.code}) ▼`;
-            phoneInput.value = currentCountry.code;
-        }
-
-        function populateCountryList() {
-            countryList.innerHTML = '';
-            countries.forEach(c => {
-                let btn = document.createElement('button');
-                btn.textContent = `${c.flag} ${c.name} (${c.code})`;
-                btn.style.display = 'block';
-                btn.style.width = '100%';
-                btn.style.padding = '10px';
-                btn.style.margin = '5px 0';
-                btn.style.background = '#2b5278';
-                btn.style.color = '#fff';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '20px';
-                btn.style.cursor = 'pointer';
-                btn.onclick = () => {
-                    currentCountry = c;
-                    updateCountryButton();
-                    countryModal.style.display = 'none';
+            // ========== РАБОТА С LOCALSTORAGE ==========
+            function loadDB() {
+                return {
+                    users: JSON.parse(localStorage.getItem('voxchat_users')) || [],
+                    messages: JSON.parse(localStorage.getItem('voxchat_messages')) || [],
+                    channels: JSON.parse(localStorage.getItem('voxchat_channels')) || []
                 };
-                countryList.appendChild(btn);
-            });
-        }
-
-        selectCountryBtn.onclick = () => { countryModal.style.display = 'flex'; };
-        closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
-        populateCountryList();
-
-        fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
-            .then(res => res.json())
-            .then(data => {
-                const countryCode = data.country;
-                if (countryCode === 'RU') currentCountry = countries[0];
-                else if (countryCode === 'BY') currentCountry = countries[1];
-                else if (countryCode === 'UA') currentCountry = countries[2];
-                else if (countryCode === 'US') currentCountry = countries[3];
-                else if (countryCode === 'KZ') currentCountry = countries[4];
-                updateCountryButton();
-            })
-            .catch(() => updateCountryButton());
-
-        const emojis = ['😊','😂','❤️','👍','🔥','😢','🎉','😍','🤔','👌','🙏','💯','⭐','🍕','⚽','🏀','🎵','📚','✈️','🏠'];
-        emojis.forEach(e => {
-            let s = document.createElement('span');
-            s.textContent = e;
-            s.onclick = () => messageInput.value += e;
-            emojiPicker.appendChild(s);
-        });
-
-        function applyStyle(style) {
-            const body = document.body;
-            body.classList.remove('classic-style', 'vox-style');
-            if (style === 'classic') {
-                body.classList.add('classic-style');
-            } else {
-                body.classList.add('vox-style');
             }
-            localStorage.setItem('voxchat_style', style);
-        }
-
-        const savedStyle = localStorage.getItem('voxchat_style') || 'classic';
-        applyStyle(savedStyle);
-
-        openSettingsBtn.onclick = () => styleModal.style.display = 'flex';
-        openSettingsAppBtn.onclick = () => styleModal.style.display = 'flex';
-        classicStyleBtn.onclick = () => { applyStyle('classic'); styleModal.style.display = 'none'; };
-        voxStyleBtn.onclick = () => { applyStyle('vox'); styleModal.style.display = 'none'; };
-        closeStyleModal.onclick = () => styleModal.style.display = 'none';
-
-        function validatePhone(p) {
-            let cleaned = p.replace(/[^\d+]/g, '');
-            return cleaned.startsWith('+') && /^\+\d{8,15}$/.test(cleaned);
-        }
-        function validatePassword(pwd) {
-            return pwd.length >= 6 && /[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd);
-        }
-        function hashPassword(pwd) {
-            return CryptoJS.SHA256(pwd).toString();
-        }
-        function isPremium(user) {
-            return user.premiumUntil && user.premiumUntil > Date.now();
-        }
-        function updatePremiumUI() {
-            if (currentUser && isPremium(currentUser)) {
-                premiumBadgeHeader.style.display = 'inline';
-                premiumStatus.innerHTML = '⭐ Premium активен';
-            } else {
-                premiumBadgeHeader.style.display = 'none';
-                premiumStatus.innerHTML = '';
+            function saveDB(db) {
+                localStorage.setItem('voxchat_users', JSON.stringify(db.users));
+                localStorage.setItem('voxchat_messages', JSON.stringify(db.messages));
+                localStorage.setItem('voxchat_channels', JSON.stringify(db.channels));
             }
-        }
 
-        function ensureFriends(user) {
-            if (user && !user.friends) {
-                user.friends = { list: [], incoming: [], outgoing: [] };
+            // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+            function validatePhone(p) {
+                let cleaned = p.replace(/[^\d+]/g, '');
+                return cleaned.startsWith('+') && /^\+\d{8,15}$/.test(cleaned);
             }
-        }
-
-        async function updateLastSeen() {
-            if (!currentUser) return;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    await supabaseClient
-                        .from('users')
-                        .update({ last_seen: new Date().toISOString() })
-                        .eq('phone', currentUser.phone);
-                } catch (e) {
-                    console.warn('Ошибка обновления last_seen, переключаемся в локальный режим', e);
-                    useLocalFallback = true;
-                }
+            function validatePassword(pwd) {
+                return pwd.length >= 6 && /[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd);
             }
-        }
-
-        function startPresenceUpdates() {
-            updateLastSeen();
-            setInterval(updateLastSeen, 60000);
-            document.addEventListener('click', updateLastSeen);
-            document.addEventListener('scroll', updateLastSeen);
-            document.addEventListener('keydown', updateLastSeen);
-        }
-
-        function updateLoginButtonState() {
-            let phoneValid = validatePhone(phoneInput.value);
-            let pwdValid = passwordInput.value.length >= 3;
-            loginBtn.disabled = !(phoneValid && pwdValid);
-            document.getElementById('debugInfo').innerHTML = 
-                `📱 Телефон: ${phoneValid ? '✅' : '❌'}  🔐 Пароль: ${pwdValid ? '✅' : '❌'}`;
-        }
-        phoneInput.addEventListener('input', updateLoginButtonState);
-        passwordInput.addEventListener('input', updateLoginButtonState);
-
-        async function findUserByPhone(phone) {
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                    return data;
-                } catch (e) {
-                    console.warn('Ошибка поиска пользователя в Supabase, переключаемся на локальный', e);
-                    useLocalFallback = true;
-                }
+            function hashPassword(pwd) {
+                return CryptoJS.SHA256(pwd).toString();
             }
-            return localDB.users.find(u => u.phone === phone);
-        }
-
-        async function createUser(user) {
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.from('users').insert([user]);
-                    if (error) throw error;
-                } catch (e) {
-                    console.warn('Ошибка создания пользователя в Supabase, сохраняем локально', e);
-                    useLocalFallback = true;
-                }
+            function isPremium(user) {
+                return user.premiumUntil && user.premiumUntil > Date.now();
             }
-            localDB.users.push(user);
-            saveLocalDB();
-        }
-
-        async function updateUser(phone, updates) {
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    await supabaseClient.from('users').update(updates).eq('phone', phone);
-                } catch (e) {
-                    console.warn('Ошибка обновления пользователя в Supabase, обновляем локально', e);
-                    useLocalFallback = true;
-                }
-            }
-            const index = localDB.users.findIndex(u => u.phone === phone);
-            if (index !== -1) {
-                localDB.users[index] = { ...localDB.users[index], ...updates };
-                saveLocalDB();
-            }
-        }
-
-        loginBtn.addEventListener('click', async () => {
-            let phone = phoneInput.value.trim();
-            let pwd = passwordInput.value.trim();
-            if (!validatePhone(phone) || pwd.length < 3) return;
-
-            let user = await findUserByPhone(phone);
-            if (user) {
-                let hashed = hashPassword(pwd);
-                if (user.password === pwd || user.password === hashed) {
-                    if (user.password === pwd) {
-                        user.password = hashed;
-                        await updateUser(phone, { password: hashed });
-                    }
-                    currentUser = user;
-                    loginScreen.classList.add('fade-out');
-                    setTimeout(() => {
-                        loginScreen.style.display = 'none';
-                        app.style.display = 'flex';
-                        setTimeout(() => app.classList.add('visible'), 50);
-                    }, 300);
-                    afterLogin(phone);
+            function updatePremiumUI() {
+                if (currentUser && isPremium(currentUser)) {
+                    document.getElementById('premiumBadgeHeader').style.display = 'inline';
+                    document.getElementById('premiumStatus').innerHTML = '⭐ Premium активен';
                 } else {
-                    loginError.textContent = 'Неверный пароль';
+                    document.getElementById('premiumBadgeHeader').style.display = 'none';
+                    document.getElementById('premiumStatus').innerHTML = '';
                 }
-            } else {
-                registerModal.style.display = 'flex';
-                const validateRegPassword = () => {
-                    let p1 = registerPassword.value;
-                    let p2 = registerPasswordConfirm.value;
-                    confirmRegister.disabled = !(p1.length >= 6 && /[a-zA-Z]/.test(p1) && /[0-9]/.test(p1) && p1 === p2);
-                };
-                registerPassword.addEventListener('input', validateRegPassword);
-                registerPasswordConfirm.addEventListener('input', validateRegPassword);
-                confirmRegister.onclick = async () => {
-                    let p1 = registerPassword.value;
-                    const hashed = hashPassword(p1);
-                    const newUser = {
-                        phone: phone,
-                        password: hashed,
-                        username: '',
-                        name: '',
-                        avatar: null,
-                        badges: { blue: false, red: false },
-                        premiumUntil: null,
-                        friends: { list: [], incoming: [], outgoing: [] },
-                        last_seen: new Date().toISOString()
+            }
+            function ensureFriends(user) {
+                if (user && !user.friends) {
+                    user.friends = { list: [], incoming: [], outgoing: [] };
+                }
+            }
+
+            // ========== ЭЛЕМЕНТЫ DOM ==========
+            const loginScreen = document.getElementById('loginScreen');
+            const app = document.getElementById('app');
+            const phoneInput = document.getElementById('phoneInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+            const userPhoneDisplay = document.getElementById('userPhoneDisplay');
+            const premiumBadgeHeader = document.getElementById('premiumBadgeHeader');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const themeToggle = document.getElementById('themeToggle');
+            const chatsModeBtn = document.getElementById('chatsModeBtn');
+            const channelsModeBtn = document.getElementById('channelsModeBtn');
+            const friendsModeBtn = document.getElementById('friendsModeBtn');
+            const profileModeBtn = document.getElementById('profileModeBtn');
+            const settingsModeBtn = document.getElementById('settingsModeBtn');
+            const contactsListEl = document.getElementById('contactsList');
+            const channelsListEl = document.getElementById('channelsList');
+            const friendsView = document.getElementById('friendsView');
+            const profileView = document.getElementById('profileView');
+            const settingsView = document.getElementById('settingsView');
+            const profileUsername = document.getElementById('profileUsername');
+            const profileName = document.getElementById('profileName');
+            const profileAvatar = document.getElementById('profileAvatar');
+            const profileAvatarInput = document.getElementById('profileAvatarInput');
+            const profileSaveBtn = document.getElementById('profileSaveBtn');
+            const showPremiumBtn = document.getElementById('showPremiumBtn');
+            const premiumStatus = document.getElementById('premiumStatus');
+            const channelActions = document.getElementById('channelActions');
+            const createChannelBtn = document.getElementById('createChannelBtn');
+            const chatHeaderTitle = document.getElementById('chatHeaderTitle');
+            const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const chatHeaderActions = document.getElementById('chatHeaderActions');
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const micButton = document.getElementById('micButton');
+            const emojiButton = document.getElementById('emojiButton');
+            const emojiPicker = document.getElementById('emojiPicker');
+            const attachButton = document.getElementById('attachButton');
+            const fileInput = document.getElementById('fileInput');
+            const chatInput = document.getElementById('chatInput');
+            const createChannelModal = document.getElementById('createChannelModal');
+            const channelNameInput = document.getElementById('channelNameInput');
+            const channelUsernameInput = document.getElementById('channelUsernameInput');
+            const channelAvatarInput = document.getElementById('channelAvatarInput');
+            const confirmCreateChannel = document.getElementById('confirmCreateChannel');
+            const cancelCreateChannel = document.getElementById('cancelCreateChannel');
+            const allChannelsModal = document.getElementById('allChannelsModal');
+            const allChannelsList = document.getElementById('allChannelsList');
+            const closeAllChannelsModal = document.getElementById('closeAllChannelsModal');
+            const registerModal = document.getElementById('registerModal');
+            const registerPassword = document.getElementById('registerPassword');
+            const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
+            const confirmRegister = document.getElementById('confirmRegister');
+            const cancelRegister = document.getElementById('cancelRegister');
+            const resetModal = document.getElementById('resetModal');
+            const resetPhone = document.getElementById('resetPhone');
+            const resetCodeInput = document.getElementById('resetCode');
+            const sendResetCodeBtn = document.getElementById('sendResetCodeBtn');
+            const verifyResetBtn = document.getElementById('verifyResetBtn');
+            const cancelResetBtn = document.getElementById('cancelResetBtn');
+            const newPasswordModal = document.getElementById('newPasswordModal');
+            const newPassword = document.getElementById('newPassword');
+            const newPasswordConfirm = document.getElementById('newPasswordConfirm');
+            const setNewPasswordBtn = document.getElementById('setNewPasswordBtn');
+            const cancelNewPasswordBtn = document.getElementById('cancelNewPasswordBtn');
+            const statsSubscribers = document.getElementById('statsSubscribers');
+            const premiumModal = document.getElementById('premiumModal');
+            const closePremiumModal = document.getElementById('closePremiumModal');
+            const addFriendModal = document.getElementById('addFriendModal');
+            const friendUsername = document.getElementById('friendUsername');
+            const searchFriendBtn = document.getElementById('searchFriendBtn');
+            const closeAddFriendModal = document.getElementById('closeAddFriendModal');
+            const friendSearchResult = document.getElementById('friendSearchResult');
+            const editMessageModal = document.getElementById('editMessageModal');
+            const editMessageText = document.getElementById('editMessageText');
+            const saveEditBtn = document.getElementById('saveEditBtn');
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+            const channelSettingsModal = document.getElementById('channelSettingsModal');
+            const channelSettingsName = document.getElementById('channelSettingsName');
+            const channelSettingsUsername = document.getElementById('channelSettingsUsername');
+            const channelSettingsAvatarInput = document.getElementById('channelSettingsAvatarInput');
+            const saveChannelSettings = document.getElementById('saveChannelSettings');
+            const closeChannelSettings = document.getElementById('closeChannelSettings');
+            const deleteChannelBtn = document.getElementById('deleteChannelBtn');
+            const channelSearchInput = document.getElementById('channelSearchInput');
+            const allChannelsSearch = document.getElementById('allChannelsSearch');
+
+            // Стили и страны
+            const openSettingsBtn = document.getElementById('openSettingsBtn');
+            const openSettingsAppBtn = document.getElementById('openSettingsAppBtn');
+            const styleModal = document.getElementById('styleModal');
+            const classicStyleBtn = document.getElementById('classicStyleBtn');
+            const voxStyleBtn = document.getElementById('voxStyleBtn');
+            const closeStyleModal = document.getElementById('closeStyleModal');
+            const selectCountryBtn = document.getElementById('selectCountryBtn');
+            const countryModal = document.getElementById('countryModal');
+            const countryList = document.getElementById('countryList');
+            const closeCountryModal = document.getElementById('closeCountryModal');
+            const reactionPickerModal = document.getElementById('reactionPickerModal');
+            const closeReactionPicker = document.getElementById('closeReactionPicker');
+            const reactionOptions = document.querySelectorAll('.reaction-option');
+            let currentReactionMsg = null;
+
+            // Страны
+            const countries = [
+                { name: 'Россия', code: '+7', flag: '🇷🇺' },
+                { name: 'Беларусь', code: '+375', flag: '🇧🇾' },
+                { name: 'Украина', code: '+380', flag: '🇺🇦' },
+                { name: 'США', code: '+1', flag: '🇺🇸' },
+                { name: 'Казахстан', code: '+7', flag: '🇰🇿' }
+            ];
+            let currentCountry = countries[0];
+
+            function updateCountryButton() {
+                selectCountryBtn.innerHTML = `${currentCountry.flag} ${currentCountry.name} (${currentCountry.code}) ▼`;
+                phoneInput.value = currentCountry.code;
+            }
+            function populateCountryList() {
+                countryList.innerHTML = '';
+                countries.forEach(c => {
+                    let btn = document.createElement('button');
+                    btn.textContent = `${c.flag} ${c.name} (${c.code})`;
+                    btn.style.display = 'block';
+                    btn.style.width = '100%';
+                    btn.style.padding = '10px';
+                    btn.style.margin = '5px 0';
+                    btn.style.background = '#2b5278';
+                    btn.style.color = '#fff';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '20px';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = () => {
+                        currentCountry = c;
+                        updateCountryButton();
+                        countryModal.style.display = 'none';
                     };
-                    await createUser(newUser);
-                    currentUser = newUser;
-                    registerModal.style.display = 'none';
-                    loginScreen.classList.add('fade-out');
-                    setTimeout(() => {
-                        loginScreen.style.display = 'none';
-                        app.style.display = 'flex';
-                        setTimeout(() => app.classList.add('visible'), 50);
-                    }, 300);
-                    afterLogin(phone);
-                };
-                cancelRegister.onclick = () => { registerModal.style.display = 'none'; };
+                    countryList.appendChild(btn);
+                });
             }
-        });
+            selectCountryBtn.onclick = () => { countryModal.style.display = 'flex'; };
+            closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
+            populateCountryList();
 
-        function afterLogin(phone) {
-            ensureFriends(currentUser);
-            currentUserPhone = phone;
-            userPhoneDisplay.textContent = phone.length > 10 ? phone.slice(0,10)+'…' : phone;
-            updatePremiumUI();
-            startPresenceUpdates();
-            initMode('chats');
-            initSpeech();
-            loadProfileToForm();
-            renderContacts();
-            renderFriendsView();
-            renderChannelsList();
-            if (currentUser.friends.list.length > 0) {
-                switchContact(currentUser.friends.list[0]);
-            } else {
-                clearChatArea();
-                chatHeaderTitle.textContent = 'Нет чатов';
-                chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
-            }
-        }
+            // Автоопределение страны
+            fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
+                .then(res => res.json())
+                .then(data => {
+                    const countryCode = data.country;
+                    if (countryCode === 'RU') currentCountry = countries[0];
+                    else if (countryCode === 'BY') currentCountry = countries[1];
+                    else if (countryCode === 'UA') currentCountry = countries[2];
+                    else if (countryCode === 'US') currentCountry = countries[3];
+                    else if (countryCode === 'KZ') currentCountry = countries[4];
+                    updateCountryButton();
+                })
+                .catch(() => updateCountryButton());
 
-        logoutBtn.addEventListener('click', () => {
-            app.classList.remove('visible');
-            setTimeout(() => {
-                app.style.display = 'none';
-                loginScreen.style.display = 'block';
-                loginScreen.classList.remove('fade-out');
-            }, 300);
-            phoneInput.value = '+7';
-            passwordInput.value = '';
-            loginBtn.disabled = true;
-            loginError.textContent = '';
-            currentUser = null;
-            currentUserPhone = null;
-            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
-                unsubscribeMessages.unsubscribe();
-                unsubscribeMessages = null;
-            }
-            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
-                unsubscribeTyping.unsubscribe();
-                unsubscribeTyping = null;
-            }
-            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
-                unsubscribeMessageUpdates.unsubscribe();
-                unsubscribeMessageUpdates = null;
-            }
-            document.getElementById('debugInfo').innerHTML = '';
-        });
-
-        forgotPasswordLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            resetModal.style.display = 'flex';
-            resetPhone.value = '+7';
-            resetCodeInput.value = '';
-            resetCode = null;
-        });
-
-        sendResetCodeBtn.addEventListener('click', () => {
-            let phone = resetPhone.value.trim();
-            if (validatePhone(phone)) {
-                resetCode = Math.floor(1000 + Math.random() * 9000).toString();
-                alert(`Код подтверждения: ${resetCode}`);
-            } else {
-                alert('Введите корректный номер');
-            }
-        });
-
-        verifyResetBtn.addEventListener('click', () => {
-            let phone = resetPhone.value.trim();
-            let code = resetCodeInput.value.trim();
-            if (!validatePhone(phone)) { alert('Некорректный номер'); return; }
-            if (code !== resetCode) { alert('Неверный код'); return; }
-            window.resetPhoneForPassword = phone;
-            resetModal.style.display = 'none';
-            newPasswordModal.style.display = 'flex';
-        });
-
-        cancelResetBtn.addEventListener('click', () => { resetModal.style.display = 'none'; });
-
-        setNewPasswordBtn.addEventListener('click', async () => {
-            let p1 = newPassword.value;
-            let p2 = newPasswordConfirm.value;
-            if (p1 !== p2) { alert('Пароли не совпадают'); return; }
-            if (!validatePassword(p1)) { alert('Пароль должен быть минимум 6 символов, содержать буквы и цифры'); return; }
-            let phone = window.resetPhoneForPassword;
-            let user = await findUserByPhone(phone);
-            if (user) {
-                let hashed = hashPassword(p1);
-                await updateUser(phone, { password: hashed });
-                alert('Пароль успешно изменён');
-            }
-            newPasswordModal.style.display = 'none';
-            newPassword.value = '';
-            newPasswordConfirm.value = '';
-        });
-
-        cancelNewPasswordBtn.addEventListener('click', () => { newPasswordModal.style.display = 'none'; });
-
-        profileAvatarInput.onchange = function(e) {
-            let file = e.target.files[0];
-            if (file) {
-                let reader = new FileReader();
-                reader.onload = ev => {
-                    profileAvatar.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
-                    currentUser.avatar = ev.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-        profileSaveBtn.onclick = async () => {
-            currentUser.username = profileUsername.value.trim().toLowerCase();
-            currentUser.name = profileName.value.trim();
-            await updateUser(currentUser.phone, {
-                username: currentUser.username,
-                name: currentUser.name,
-                avatar: currentUser.avatar
+            // Эмодзи-пикер
+            const emojis = ['😊','😂','❤️','👍','🔥','😢','🎉','😍','🤔','👌','🙏','💯','⭐','🍕','⚽','🏀','🎵','📚','✈️','🏠'];
+            emojis.forEach(e => {
+                let s = document.createElement('span');
+                s.textContent = e;
+                s.onclick = () => messageInput.value += e;
+                emojiPicker.appendChild(s);
             });
-            alert('Сохранено');
-            renderContacts();
-        };
-        function loadProfileToForm() {
-            profileUsername.value = currentUser.username || '';
-            profileName.value = currentUser.name || '';
-            if (currentUser.avatar) {
-                profileAvatar.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
-            } else {
-                profileAvatar.innerHTML = '<span>👤</span>';
-            }
-        }
 
-        showPremiumBtn.addEventListener('click', () => { premiumModal.style.display = 'flex'; });
-        closePremiumModal.addEventListener('click', () => { premiumModal.style.display = 'none'; });
-        document.querySelectorAll('.premium-option').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                let months = parseInt(this.dataset.months);
-                if (confirm(`Оформить Premium на ${months} мес. за ${this.dataset.price}₽?`)) {
-                    let until = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
-                    currentUser.premiumUntil = until;
-                    if (!currentUser.badges) currentUser.badges = {};
-                    currentUser.badges.red = true;
-                    await updateUser(currentUser.phone, {
-                        premiumUntil: until,
-                        badges: currentUser.badges
-                    });
-                    updatePremiumUI();
-                    premiumModal.style.display = 'none';
-                    alert('Premium активирован!');
-                    renderContacts();
+            // Стиль
+            function applyStyle(style) {
+                const body = document.body;
+                body.classList.remove('classic-style', 'vox-style');
+                if (style === 'classic') {
+                    body.classList.add('classic-style');
+                } else {
+                    body.classList.add('vox-style');
+                }
+                localStorage.setItem('voxchat_style', style);
+            }
+            const savedStyle = localStorage.getItem('voxchat_style') || 'classic';
+            applyStyle(savedStyle);
+            openSettingsBtn.onclick = () => styleModal.style.display = 'flex';
+            openSettingsAppBtn.onclick = () => styleModal.style.display = 'flex';
+            classicStyleBtn.onclick = () => { applyStyle('classic'); styleModal.style.display = 'none'; };
+            voxStyleBtn.onclick = () => { applyStyle('vox'); styleModal.style.display = 'none'; };
+            closeStyleModal.onclick = () => styleModal.style.display = 'none';
+
+            // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ ==========
+            function findUserByPhone(phone) {
+                let db = loadDB();
+                return db.users.find(u => u.phone === phone);
+            }
+            function saveUser(user) {
+                let db = loadDB();
+                let index = db.users.findIndex(u => u.phone === user.phone);
+                if (index !== -1) {
+                    db.users[index] = user;
+                } else {
+                    db.users.push(user);
+                }
+                saveDB(db);
+            }
+            function deleteUser(phone) {
+                let db = loadDB();
+                db.users = db.users.filter(u => u.phone !== phone);
+                saveDB(db);
+            }
+
+            // ========== ВХОД / РЕГИСТРАЦИЯ ==========
+            function updateLoginButtonState() {
+                let phoneValid = validatePhone(phoneInput.value);
+                let pwdValid = passwordInput.value.length >= 3;
+                loginBtn.disabled = !(phoneValid && pwdValid);
+                document.getElementById('debugInfo').innerHTML = 
+                    `📱 Телефон: ${phoneValid ? '✅' : '❌'}  🔐 Пароль: ${pwdValid ? '✅' : '❌'}`;
+            }
+            phoneInput.addEventListener('input', updateLoginButtonState);
+            passwordInput.addEventListener('input', updateLoginButtonState);
+
+            loginBtn.addEventListener('click', () => {
+                let phone = phoneInput.value.trim();
+                let pwd = passwordInput.value.trim();
+                if (!validatePhone(phone) || pwd.length < 3) return;
+
+                let user = findUserByPhone(phone);
+                if (user) {
+                    let hashed = hashPassword(pwd);
+                    if (user.password === pwd || user.password === hashed) {
+                        if (user.password === pwd) {
+                            user.password = hashed;
+                            saveUser(user);
+                        }
+                        currentUser = user;
+                        loginScreen.classList.add('fade-out');
+                        setTimeout(() => {
+                            loginScreen.style.display = 'none';
+                            app.style.display = 'flex';
+                            setTimeout(() => app.classList.add('visible'), 50);
+                        }, 300);
+                        afterLogin(phone);
+                    } else {
+                        loginError.textContent = 'Неверный пароль';
+                    }
+                } else {
+                    // Регистрация
+                    registerModal.style.display = 'flex';
+                    const validateRegPassword = () => {
+                        let p1 = registerPassword.value;
+                        let p2 = registerPasswordConfirm.value;
+                        confirmRegister.disabled = !(p1.length >= 6 && /[a-zA-Z]/.test(p1) && /[0-9]/.test(p1) && p1 === p2);
+                    };
+                    registerPassword.addEventListener('input', validateRegPassword);
+                    registerPasswordConfirm.addEventListener('input', validateRegPassword);
+                    confirmRegister.onclick = () => {
+                        let p1 = registerPassword.value;
+                        const hashed = hashPassword(p1);
+                        const newUser = {
+                            phone: phone,
+                            password: hashed,
+                            username: '',
+                            name: '',
+                            avatar: null,
+                            badges: { blue: false, red: false },
+                            premiumUntil: null,
+                            friends: { list: [], incoming: [], outgoing: [] },
+                            last_seen: new Date().toISOString()
+                        };
+                        saveUser(newUser);
+                        currentUser = newUser;
+                        registerModal.style.display = 'none';
+                        loginScreen.classList.add('fade-out');
+                        setTimeout(() => {
+                            loginScreen.style.display = 'none';
+                            app.style.display = 'flex';
+                            setTimeout(() => app.classList.add('visible'), 50);
+                        }, 300);
+                        afterLogin(phone);
+                    };
+                    cancelRegister.onclick = () => { registerModal.style.display = 'none'; };
                 }
             });
-        });
 
-        deleteAccountBtn.addEventListener('click', async () => {
-            if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    await supabaseClient.from('messages').delete().eq('sender', currentUser.phone);
-                    await supabaseClient.from('channels').delete().eq('createdBy', currentUser.phone);
-                    let { data: allUsers } = await supabaseClient.from('users').select('phone, friends');
-                    for (let u of allUsers) {
-                        if (u.friends) {
-                            let changed = false;
-                            if (u.friends.list.includes(currentUser.phone)) {
-                                u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
-                                changed = true;
-                            }
-                            if (u.friends.incoming.includes(currentUser.phone)) {
-                                u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
-                                changed = true;
-                            }
-                            if (u.friends.outgoing.includes(currentUser.phone)) {
-                                u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
-                                changed = true;
-                            }
-                            if (changed) {
-                                await supabaseClient.from('users').update({ friends: u.friends }).eq('phone', u.phone);
-                            }
+            function afterLogin(phone) {
+                ensureFriends(currentUser);
+                currentUserPhone = phone;
+                userPhoneDisplay.textContent = phone.length > 10 ? phone.slice(0,10)+'…' : phone;
+                updatePremiumUI();
+                initMode('chats');
+                initSpeech();
+                loadProfileToForm();
+                renderContacts();
+                renderFriendsView();
+                renderChannelsList();
+                if (currentUser.friends.list.length > 0) {
+                    switchContact(currentUser.friends.list[0]);
+                } else {
+                    clearChatArea();
+                    chatHeaderTitle.textContent = 'Нет чатов';
+                    chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
+                }
+            }
+
+            logoutBtn.addEventListener('click', () => {
+                app.classList.remove('visible');
+                setTimeout(() => {
+                    app.style.display = 'none';
+                    loginScreen.style.display = 'block';
+                    loginScreen.classList.remove('fade-out');
+                }, 300);
+                phoneInput.value = '+7';
+                passwordInput.value = '';
+                loginBtn.disabled = true;
+                loginError.textContent = '';
+                currentUser = null;
+                currentUserPhone = null;
+                document.getElementById('debugInfo').innerHTML = '';
+            });
+
+            // ========== ЗАБЫЛИ ПАРОЛЬ (УПРОЩЁННО) ==========
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                resetModal.style.display = 'flex';
+                resetPhone.value = '+7';
+                resetCodeInput.value = '';
+                resetCode = null;
+            });
+            sendResetCodeBtn.addEventListener('click', () => {
+                let phone = resetPhone.value.trim();
+                if (validatePhone(phone)) {
+                    resetCode = Math.floor(1000 + Math.random() * 9000).toString();
+                    alert(`Код подтверждения: ${resetCode}`);
+                } else {
+                    alert('Введите корректный номер');
+                }
+            });
+            verifyResetBtn.addEventListener('click', () => {
+                let phone = resetPhone.value.trim();
+                let code = resetCodeInput.value.trim();
+                if (!validatePhone(phone)) { alert('Некорректный номер'); return; }
+                if (code !== resetCode) { alert('Неверный код'); return; }
+                window.resetPhoneForPassword = phone;
+                resetModal.style.display = 'none';
+                newPasswordModal.style.display = 'flex';
+            });
+            cancelResetBtn.addEventListener('click', () => { resetModal.style.display = 'none'; });
+            setNewPasswordBtn.addEventListener('click', () => {
+                let p1 = newPassword.value;
+                let p2 = newPasswordConfirm.value;
+                if (p1 !== p2) { alert('Пароли не совпадают'); return; }
+                if (!validatePassword(p1)) { alert('Пароль должен быть минимум 6 символов, содержать буквы и цифры'); return; }
+                let phone = window.resetPhoneForPassword;
+                let user = findUserByPhone(phone);
+                if (user) {
+                    let hashed = hashPassword(p1);
+                    user.password = hashed;
+                    saveUser(user);
+                    alert('Пароль успешно изменён');
+                }
+                newPasswordModal.style.display = 'none';
+                newPassword.value = '';
+                newPasswordConfirm.value = '';
+            });
+            cancelNewPasswordBtn.addEventListener('click', () => { newPasswordModal.style.display = 'none'; });
+
+            // ========== ПРОФИЛЬ ==========
+            profileAvatarInput.onchange = function(e) {
+                let file = e.target.files[0];
+                if (file) {
+                    let reader = new FileReader();
+                    reader.onload = ev => {
+                        profileAvatar.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+                        currentUser.avatar = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            profileSaveBtn.onclick = () => {
+                currentUser.username = profileUsername.value.trim().toLowerCase();
+                currentUser.name = profileName.value.trim();
+                saveUser(currentUser);
+                alert('Сохранено');
+                renderContacts();
+            };
+            function loadProfileToForm() {
+                profileUsername.value = currentUser.username || '';
+                profileName.value = currentUser.name || '';
+                if (currentUser.avatar) {
+                    profileAvatar.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+                } else {
+                    profileAvatar.innerHTML = '<span>👤</span>';
+                }
+            }
+
+            // ========== PREMIUM ==========
+            showPremiumBtn.addEventListener('click', () => { premiumModal.style.display = 'flex'; });
+            closePremiumModal.addEventListener('click', () => { premiumModal.style.display = 'none'; });
+            document.querySelectorAll('.premium-option').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    let months = parseInt(this.dataset.months);
+                    if (confirm(`Оформить Premium на ${months} мес. за ${this.dataset.price}₽?`)) {
+                        let until = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
+                        currentUser.premiumUntil = until;
+                        if (!currentUser.badges) currentUser.badges = {};
+                        currentUser.badges.red = true;
+                        saveUser(currentUser);
+                        updatePremiumUI();
+                        premiumModal.style.display = 'none';
+                        alert('Premium активирован!');
+                        renderContacts();
+                    }
+                });
+            });
+
+            // ========== УДАЛЕНИЕ АККАУНТА ==========
+            deleteAccountBtn.addEventListener('click', () => {
+                if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
+                let db = loadDB();
+                // Удаляем все сообщения, где пользователь отправитель
+                db.messages = db.messages.filter(m => m.sender !== currentUser.phone);
+                // Удаляем каналы, созданные пользователем
+                db.channels = db.channels.filter(c => c.createdBy !== currentUser.phone);
+                // Удаляем пользователя из списков друзей других пользователей
+                db.users.forEach(u => {
+                    if (u.friends) {
+                        u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
+                        u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
+                        u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
+                    }
+                });
+                // Удаляем самого пользователя
+                db.users = db.users.filter(u => u.phone !== currentUser.phone);
+                saveDB(db);
+                alert('Аккаунт удалён. До свидания!');
+                logoutBtn.click();
+            });
+
+            // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
+            function initMode(mode) {
+                currentMode = mode;
+                [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
+                contactsListEl.style.display = 'none';
+                channelsListEl.style.display = 'none';
+                friendsView.style.display = 'none';
+                profileView.style.display = 'none';
+                settingsView.style.display = 'none';
+                channelActions.style.display = 'none';
+
+                if (mode === 'chats') {
+                    chatsModeBtn.classList.add('active');
+                    contactsListEl.style.display = 'block';
+                    renderContacts();
+                    if (!currentContactId || currentContactId === '') {
+                        if (currentUser && currentUser.friends && currentUser.friends.list.length > 0) {
+                            switchContact(currentUser.friends.list[0]);
+                        } else {
+                            clearChatArea();
+                            chatHeaderTitle.textContent = 'Нет чатов';
+                            chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
                         }
                     }
-                } catch (e) {}
+                } else if (mode === 'channels') {
+                    channelsModeBtn.classList.add('active');
+                    channelsListEl.style.display = 'block';
+                    channelActions.style.display = 'flex';
+                    renderChannelsList();
+                    clearChatArea();
+                } else if (mode === 'friends') {
+                    friendsModeBtn.classList.add('active');
+                    friendsView.style.display = 'block';
+                    ensureFriends(currentUser);
+                    renderFriendsView();
+                    clearChatArea();
+                } else if (mode === 'profile') {
+                    profileModeBtn.classList.add('active');
+                    profileView.style.display = 'flex';
+                    loadProfileToForm();
+                    updatePremiumUI();
+                    clearChatArea();
+                } else if (mode === 'settings') {
+                    settingsModeBtn.classList.add('active');
+                    settingsView.style.display = 'flex';
+                    updateStats();
+                    clearChatArea();
+                }
             }
-            localDB.users = localDB.users.filter(u => u.phone !== currentUser.phone);
-            localDB.messages = localDB.messages.filter(m => m.sender !== currentUser.phone);
-            localDB.channels = localDB.channels.filter(c => c.createdBy !== currentUser.phone);
-            saveLocalDB();
-            alert('Аккаунт удалён. До свидания!');
-            logoutBtn.click();
-        });
 
-        function initMode(mode) {
-            currentMode = mode;
-            [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
-            contactsListEl.style.display = 'none';
-            channelsListEl.style.display = 'none';
-            friendsView.style.display = 'none';
-            profileView.style.display = 'none';
-            settingsView.style.display = 'none';
-            channelActions.style.display = 'none';
+            chatsModeBtn.onclick = () => initMode('chats');
+            channelsModeBtn.onclick = () => initMode('channels');
+            friendsModeBtn.onclick = () => initMode('friends');
+            profileModeBtn.onclick = () => initMode('profile');
+            settingsModeBtn.onclick = () => initMode('settings');
 
-            if (mode === 'chats') {
-                chatsModeBtn.classList.add('active');
-                contactsListEl.style.display = 'block';
+            // ========== КОНТАКТЫ (СПИСОК ДРУЗЕЙ) ==========
+            async function renderContacts() {
+                contactsListEl.innerHTML = '';
+
+                if (currentUser && currentUser.friends && currentUser.friends.list) {
+                    const friendPhones = currentUser.friends.list;
+                    if (friendPhones.length === 0) {
+                        contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
+                        return;
+                    }
+                    let db = loadDB();
+                    let friendsData = db.users.filter(u => friendPhones.includes(u.phone));
+                    friendsData.forEach(f => friendsCache.set(f.phone, f));
+
+                    for (let friendPhone of friendPhones) {
+                        let friend = friendsCache.get(friendPhone);
+                        if (!friend) continue;
+                        let div = document.createElement('div');
+                        div.className = `contact ${currentContactId === friendPhone ? 'active' : ''}`;
+                        let avatar = friend.avatar ? `<img src="${friend.avatar}">` : '👤';
+                        let badges = '';
+                        if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                        if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
+                        let status = 'онлайн';
+                        if (friend.last_seen) {
+                            let diff = Date.now() - new Date(friend.last_seen).getTime();
+                            if (diff > 120000) {
+                                let date = new Date(friend.last_seen);
+                                status = 'был ' + date.toLocaleTimeString().slice(0,5);
+                            }
+                        }
+                        div.innerHTML = `
+                            <div class="contact-avatar">${avatar}</div>
+                            <div class="contact-info">
+                                <div class="contact-name">${friend.name || friend.username || friendPhone} ${badges}</div>
+                                <div class="contact-status">${status}</div>
+                            </div>
+                        `;
+                        div.onclick = () => switchContact(friendPhone);
+                        contactsListEl.appendChild(div);
+                    }
+                }
+            }
+
+            function switchContact(id) {
+                currentContactId = id;
                 renderContacts();
-                if (!currentContactId || currentContactId === '') {
-                    if (currentUser && currentUser.friends && currentUser.friends.list.length > 0) {
-                        switchContact(currentUser.friends.list[0]);
-                    } else {
-                        clearChatArea();
-                        chatHeaderTitle.textContent = 'Нет чатов';
-                        chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
-                    }
-                }
-            } else if (mode === 'channels') {
-                channelsModeBtn.classList.add('active');
-                channelsListEl.style.display = 'block';
-                channelActions.style.display = 'flex';
-                renderChannelsList();
-                clearChatArea();
-            } else if (mode === 'friends') {
-                friendsModeBtn.classList.add('active');
-                friendsView.style.display = 'block';
-                ensureFriends(currentUser);
-                renderFriendsView();
-                clearChatArea();
-            } else if (mode === 'profile') {
-                profileModeBtn.classList.add('active');
-                profileView.style.display = 'flex';
-                loadProfileToForm();
-                updatePremiumUI();
-                clearChatArea();
-            } else if (mode === 'settings') {
-                settingsModeBtn.classList.add('active');
-                settingsView.style.display = 'flex';
-                updateStats();
-                clearChatArea();
-            }
-        }
+                messagesOffset = 0;
+                hasMoreMessages = true;
 
-        chatsModeBtn.onclick = () => initMode('chats');
-        channelsModeBtn.onclick = () => initMode('channels');
-        friendsModeBtn.onclick = () => initMode('friends');
-        profileModeBtn.onclick = () => initMode('profile');
-        settingsModeBtn.onclick = () => initMode('settings');
-
-        async function renderContacts() {
-            contactsListEl.innerHTML = '';
-
-            if (currentUser && currentUser.friends && currentUser.friends.list) {
-                const friendPhones = currentUser.friends.list;
-                if (friendPhones.length === 0) {
-                    contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
-                    return;
-                }
-                let friendsData = [];
-                if (!useLocalFallback && supabaseClient) {
-                    try {
-                        const { data } = await supabaseClient.from('users').select('*').in('phone', friendPhones);
-                        friendsData = data || [];
-                    } catch (e) {
-                        console.warn('Ошибка загрузки друзей из Supabase, используем локальные данные');
-                        useLocalFallback = true;
-                    }
-                }
-                if (useLocalFallback) {
-                    friendsData = localDB.users.filter(u => friendPhones.includes(u.phone));
-                }
-                friendsData.forEach(f => friendsCache.set(f.phone, f));
-
-                for (let friendPhone of friendPhones) {
-                    let friend = friendsCache.get(friendPhone);
-                    if (!friend) continue;
-                    let div = document.createElement('div');
-                    div.className = `contact ${currentContactId === friendPhone ? 'active' : ''}`;
-                    let avatar = friend.avatar ? `<img src="${friend.avatar}">` : '👤';
+                const friend = friendsCache.get(id) || findUserByPhone(id);
+                if (friend) {
                     let badges = '';
                     if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
                     if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
+                    chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
                     let status = 'онлайн';
                     if (friend.last_seen) {
                         let diff = Date.now() - new Date(friend.last_seen).getTime();
@@ -1034,915 +934,589 @@
                             status = 'был ' + date.toLocaleTimeString().slice(0,5);
                         }
                     }
-                    div.innerHTML = `
-                        <div class="contact-avatar">${avatar}</div>
-                        <div class="contact-info">
-                            <div class="contact-name">${friend.name || friend.username || friendPhone} ${badges}</div>
-                            <div class="contact-status">${status}</div>
-                        </div>
-                    `;
-                    div.onclick = () => switchContact(friendPhone);
-                    contactsListEl.appendChild(div);
+                    chatHeaderSubtitle.textContent = status;
                 }
-            }
-        }
-
-        function switchContact(id) {
-            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
-                unsubscribeMessages.unsubscribe();
-                unsubscribeMessages = null;
-            }
-            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
-                unsubscribeTyping.unsubscribe();
-                unsubscribeTyping = null;
-            }
-            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
-                unsubscribeMessageUpdates.unsubscribe();
-                unsubscribeMessageUpdates = null;
+                typingIndicator.textContent = '';
+                loadMessages(getChatId(id), false);
+                chatHeaderActions.innerHTML = '';
+                chatInput.style.display = 'flex';
+                messageInput.disabled = false;
+                sendButton.disabled = false;
             }
 
-            currentContactId = id;
-            renderContacts();
-            messagesOffset = 0;
-            hasMoreMessages = true;
+            // ========== СООБЩЕНИЯ ==========
+            function getChatId(contactId) {
+                if (!contactId) return '';
+                contactId = String(contactId);
+                if (contactId.startsWith('+')) {
+                    if (!currentUser) return '';
+                    return `private_${[currentUser.phone, contactId].sort().join('_')}`;
+                }
+                return contactId; // канал
+            }
 
-            const friend = friendsCache.get(id);
-            if (friend) {
-                let badges = '';
-                if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
-                if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
-                chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
-                let status = 'онлайн';
-                if (friend.last_seen) {
-                    let diff = Date.now() - new Date(friend.last_seen).getTime();
-                    if (diff > 120000) {
-                        let date = new Date(friend.last_seen);
-                        status = 'был ' + date.toLocaleTimeString().slice(0,5);
+            function loadMessages(chatId, loadMore = false) {
+                if (isLoadingMessages) return;
+                isLoadingMessages = true;
+                if (!loadMore) {
+                    messagesOffset = 0;
+                    messagesContainer.innerHTML = '';
+                    for (let i = 0; i < 5; i++) {
+                        let skeleton = document.createElement('div');
+                        skeleton.className = 'skeleton-message';
+                        messagesContainer.appendChild(skeleton);
                     }
                 }
-                chatHeaderSubtitle.textContent = status;
-            } else {
-                (async () => {
-                    let friendData;
-                    if (!useLocalFallback && supabaseClient) {
-                        try {
-                            const { data } = await supabaseClient.from('users').select('name, username, badges, last_seen').eq('phone', id).single();
-                            friendData = data;
-                        } catch (e) {}
-                    }
-                    if (!friendData) {
-                        friendData = localDB.users.find(u => u.phone === id);
-                    }
-                    if (friendData) {
-                        friendsCache.set(id, friendData);
-                        let badges = '';
-                        if (friendData.badges?.blue) badges += '<span class="verified blue">✓</span>';
-                        if (friendData.badges?.red) badges += '<span class="verified red">✓</span>';
-                        chatHeaderTitle.innerHTML = `${friendData.name || friendData.username || id} ${badges}`;
-                        let status = 'онлайн';
-                        if (friendData.last_seen) {
-                            let diff = Date.now() - new Date(friendData.last_seen).getTime();
-                            if (diff > 120000) {
-                                let date = new Date(friendData.last_seen);
-                                status = 'был ' + date.toLocaleTimeString().slice(0,5);
-                            }
-                        }
-                        chatHeaderSubtitle.textContent = status;
-                    }
-                })();
-            }
-            typingIndicator.textContent = '';
-            subscribeToMessages(id);
-            subscribeToTyping(id);
-            chatHeaderActions.innerHTML = '';
-            chatInput.style.display = 'flex';
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-        }
-
-        function subscribeToTyping(contactId) {
-            let chatId = getChatId(contactId);
-            if (!chatId) return;
-            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
-                unsubscribeTyping.unsubscribe();
-                unsubscribeTyping = null;
-            }
-            if (useLocalFallback) return;
-            unsubscribeTyping = supabaseClient
-                .channel(`typing-${chatId}`)
-                .on(
-                    'broadcast',
-                    { event: 'typing' },
-                    (payload) => {
-                        if (payload.payload.sender !== currentUser.phone && payload.payload.chatId === chatId) {
-                            typingIndicator.textContent = 'печатает...';
-                            clearTimeout(activeTimers.typing);
-                            activeTimers.typing = setTimeout(() => {
-                                typingIndicator.textContent = '';
-                            }, 3000);
-                        }
-                    }
-                )
-                .subscribe();
-        }
-
-        function sendTyping() {
-            if (!currentUser || !currentContactId || useLocalFallback) return;
-            let chatId = getChatId(currentContactId);
-            supabaseClient.channel(`typing-${chatId}`).send({
-                type: 'broadcast',
-                event: 'typing',
-                payload: { sender: currentUser.phone, chatId: chatId }
-            });
-        }
-
-        messageInput.addEventListener('input', () => {
-            sendTyping();
-        });
-
-        function getChatId(contactId) {
-            if (!contactId) return '';
-            contactId = String(contactId);
-            if (contactId.startsWith('+')) {
-                if (!currentUser) return '';
-                return `private_${[currentUser.phone, contactId].sort().join('_')}`;
-            }
-            return contactId;
-        }
-
-        async function loadMessages(chatId, loadMore = false) {
-            if (isLoadingMessages) return;
-            isLoadingMessages = true;
-            console.log('📜 Загрузка сообщений для chatId:', chatId, 'loadMore:', loadMore);
-            if (!loadMore) {
-                messagesOffset = 0;
-                messagesContainer.innerHTML = '';
-                for (let i = 0; i < 5; i++) {
-                    let skeleton = document.createElement('div');
-                    skeleton.className = 'skeleton-message';
-                    messagesContainer.appendChild(skeleton);
-                }
-            }
-            try {
-                let msgs = [];
-                if (!useLocalFallback && supabaseClient) {
-                    try {
-                        let query = supabaseClient
-                            .from('messages')
-                            .select('*')
-                            .eq('chat_id', chatId)
-                            .order('time', { ascending: false })
-                            .range(messagesOffset, messagesOffset + messagesLimit - 1);
-                        let { data, error } = await query;
-                        if (error) throw error;
-                        msgs = data || [];
-                    } catch (e) {
-                        console.warn('Ошибка загрузки сообщений из Supabase, переключаемся на локальные', e);
-                        useLocalFallback = true;
-                    }
-                }
-                if (useLocalFallback) {
-                    msgs = localDB.messages
+                try {
+                    let db = loadDB();
+                    let msgs = db.messages
                         .filter(m => m.chat_id === chatId)
                         .sort((a, b) => new Date(b.time) - new Date(a.time))
                         .slice(messagesOffset, messagesOffset + messagesLimit);
-                }
-                if (!loadMore) messagesContainer.innerHTML = '';
-                if (msgs.length < messagesLimit) hasMoreMessages = false;
-                msgs.reverse();
-                if (loadMore) {
-                    msgs.forEach(m => {
-                        m.isMe = (m.sender === currentUser.phone);
-                        prependMessage(m);
-                    });
-                } else {
-                    msgs.forEach(m => {
-                        m.isMe = (m.sender === currentUser.phone);
-                        appendMessage(m);
-                    });
-                }
-                messagesOffset += msgs.length;
-            } catch (e) {
-                console.error('Ошибка загрузки сообщений:', e);
-                if (!loadMore) messagesContainer.innerHTML = '<div style="text-align:center;color:#f44336;">Ошибка загрузки</div>';
-            } finally {
-                isLoadingMessages = false;
-            }
-        }
-
-        function subscribeToMessages(contactId) {
-            let chatId = getChatId(contactId);
-            if (!chatId) return;
-            console.log('📡 Подписка на чат/канал:', chatId);
-            loadMessages(chatId, false);
-
-            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
-                unsubscribeMessages.unsubscribe();
-                unsubscribeMessages = null;
-            }
-            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
-                unsubscribeMessageUpdates.unsubscribe();
-                unsubscribeMessageUpdates = null;
-            }
-
-            if (useLocalFallback) return;
-
-            unsubscribeMessages = supabaseClient
-                .channel(`messages-${chatId}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'messages',
-                        filter: `chat_id=eq.${chatId}`
-                    },
-                    (payload) => {
-                        console.log('🔥 Новое сообщение:', payload);
-                        let newMsg = payload.new;
-                        newMsg.isMe = (newMsg.sender === currentUser.phone);
-                        appendMessage(newMsg);
-                    }
-                )
-                .subscribe();
-
-            unsubscribeMessageUpdates = supabaseClient
-                .channel(`messages-updates-${chatId}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'messages',
-                        filter: `chat_id=eq.${chatId}`
-                    },
-                    (payload) => {
-                        console.log('✏️ Обновление сообщения:', payload);
-                        updateMessageInUI(payload.new);
-                    }
-                )
-                .subscribe();
-        }
-
-        function updateMessageInUI(updatedMsg) {
-            const wrapper = document.querySelector(`.message-wrapper[data-id="${updatedMsg.id}"]`);
-            if (!wrapper) return;
-            const msgDiv = wrapper.querySelector('.message');
-            const footer = wrapper.querySelector('.message-footer');
-            if (updatedMsg.text !== undefined && msgDiv && !updatedMsg.image) {
-                msgDiv.textContent = updatedMsg.text;
-            }
-            if (updatedMsg.reactions && footer) {
-                const reactionBtn = footer.querySelector('.reaction-btn');
-                if (reactionBtn) {
-                    const total = Object.values(updatedMsg.reactions).reduce((a,b)=>a+b,0);
-                    reactionBtn.innerHTML = `❤️ <span>${total || 0}</span>`;
-                }
-            }
-            wrapper.classList.add('message-update');
-            setTimeout(() => wrapper.classList.remove('message-update'), 200);
-        }
-
-        function showReplyBar(msg) {
-            let existingBar = document.getElementById('replyBar');
-            if (existingBar) existingBar.remove();
-
-            let bar = document.createElement('div');
-            bar.id = 'replyBar';
-            bar.innerHTML = `
-                <span>↩️ Ответ на: ${msg.text || (msg.image ? '📷 Изображение' : '')}</span>
-                <button id="cancelReplyBtn">✕</button>
-            `;
-            chatInput.parentNode.insertBefore(bar, chatInput);
-            document.getElementById('cancelReplyBtn').onclick = () => {
-                bar.remove();
-                replyToMessage = null;
-                messageInput.placeholder = 'Сообщение...';
-            };
-            messageInput.placeholder = 'Ваш ответ...';
-        }
-
-        function appendMessage(msg) {
-            let w = document.createElement('div');
-            w.className = 'message-wrapper';
-            w.dataset.id = msg.id;
-            w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
-
-            if (msg.reply_to) {
-                let replyDiv = document.createElement('div');
-                replyDiv.className = 'reply-indicator';
-                replyDiv.style.fontSize = '12px';
-                replyDiv.style.opacity = '0.8';
-                replyDiv.style.marginBottom = '2px';
-                replyDiv.style.padding = '2px 8px';
-                replyDiv.style.borderLeft = '3px solid #3390ec';
-                replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
-                replyDiv.style.borderRadius = '4px';
-                replyDiv.textContent = '↩️ Загрузка...';
-                w.appendChild(replyDiv);
-
-                (async () => {
-                    let originalMsg;
-                    if (!useLocalFallback && supabaseClient) {
-                        try {
-                            const { data } = await supabaseClient.from('messages').select('text, image, sender').eq('id', msg.reply_to).single();
-                            originalMsg = data;
-                        } catch (e) {}
-                    }
-                    if (!originalMsg) {
-                        originalMsg = localDB.messages.find(m => m.id == msg.reply_to);
-                    }
-                    if (!originalMsg) {
-                        replyDiv.textContent = '↩️ Сообщение не найдено';
-                        return;
-                    }
-                    let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
-                    replyDiv.textContent = `↩️ ${replyText}`;
-                })();
-            }
-
-            let md = document.createElement('div');
-            md.className = `message ${msg.isMe ? 'own' : ''}`;
-            if (msg.image) {
-                let img = document.createElement('img');
-                img.src = msg.image;
-                img.onclick = () => window.open(msg.image);
-                md.appendChild(img);
-            } else {
-                md.textContent = msg.text;
-            }
-            let t = document.createElement('div');
-            t.className = 'message-time';
-            t.textContent = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let f = document.createElement('div');
-            f.className = 'message-footer';
-
-            let r = document.createElement('button');
-            r.className = 'reaction-btn';
-            let reactions = msg.reactions || {};
-            let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
-            r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
-            r.onclick = (e) => {
-                e.stopPropagation();
-                currentReactionMsg = msg;
-                let rect = e.target.getBoundingClientRect();
-                showFloatingReaction('❤️', rect.left, rect.top);
-                reactionPickerModal.style.display = 'flex';
-            };
-            f.appendChild(r);
-
-            let replyBtn = document.createElement('button');
-            replyBtn.className = 'reply-btn';
-            replyBtn.innerHTML = '↩️';
-            replyBtn.onclick = (e) => {
-                e.stopPropagation();
-                replyToMessage = msg;
-                showReplyBar(msg);
-            };
-            f.appendChild(replyBtn);
-
-            w.appendChild(md);
-            w.appendChild(t);
-            w.appendChild(f);
-            messagesContainer.appendChild(w);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function prependMessage(msg) {
-            let w = document.createElement('div');
-            w.className = 'message-wrapper';
-            w.dataset.id = msg.id;
-            w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
-
-            if (msg.reply_to) {
-                let replyDiv = document.createElement('div');
-                replyDiv.style.fontSize = '12px';
-                replyDiv.style.opacity = '0.7';
-                replyDiv.style.marginBottom = '2px';
-                replyDiv.style.padding = '2px 8px';
-                replyDiv.style.borderLeft = '3px solid #3390ec';
-                replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
-                replyDiv.style.borderRadius = '4px';
-                replyDiv.textContent = '↩️ Загрузка...';
-                w.appendChild(replyDiv);
-
-                (async () => {
-                    let originalMsg;
-                    if (!useLocalFallback && supabaseClient) {
-                        try {
-                            const { data } = await supabaseClient.from('messages').select('text, image, sender').eq('id', msg.reply_to).single();
-                            originalMsg = data;
-                        } catch (e) {}
-                    }
-                    if (!originalMsg) {
-                        originalMsg = localDB.messages.find(m => m.id == msg.reply_to);
-                    }
-                    if (!originalMsg) {
-                        replyDiv.textContent = '↩️ Сообщение не найдено';
-                        return;
-                    }
-                    let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
-                    replyDiv.textContent = `↩️ ${replyText}`;
-                })();
-            }
-
-            let md = document.createElement('div');
-            md.className = `message ${msg.isMe ? 'own' : ''}`;
-            if (msg.image) {
-                let img = document.createElement('img');
-                img.src = msg.image;
-                img.onclick = () => window.open(msg.image);
-                md.appendChild(img);
-            } else {
-                md.textContent = msg.text;
-            }
-            let t = document.createElement('div');
-            t.className = 'message-time';
-            t.textContent = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let f = document.createElement('div');
-            f.className = 'message-footer';
-
-            let r = document.createElement('button');
-            r.className = 'reaction-btn';
-            let reactions = msg.reactions || {};
-            let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
-            r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
-            r.onclick = (e) => {
-                e.stopPropagation();
-                currentReactionMsg = msg;
-                reactionPickerModal.style.display = 'flex';
-            };
-            f.appendChild(r);
-
-            let replyBtn = document.createElement('button');
-            replyBtn.className = 'reply-btn';
-            replyBtn.innerHTML = '↩️';
-            replyBtn.onclick = (e) => {
-                e.stopPropagation();
-                replyToMessage = msg;
-                showReplyBar(msg);
-            };
-            f.appendChild(replyBtn);
-
-            w.appendChild(md);
-            w.appendChild(t);
-            w.appendChild(f);
-            messagesContainer.insertBefore(w, messagesContainer.firstChild);
-        }
-
-        reactionOptions.forEach(btn => {
-            btn.onclick = async () => {
-                let reaction = btn.dataset.reaction;
-                if (!currentReactionMsg) return;
-                let msg = currentReactionMsg;
-                let reactions = msg.reactions || {};
-                reactions[reaction] = (reactions[reaction] || 0) + 1;
-                try {
-                    if (!useLocalFallback && supabaseClient) {
-                        await supabaseClient
-                            .from('messages')
-                            .update({ reactions: reactions })
-                            .eq('id', msg.id);
+                    if (!loadMore) messagesContainer.innerHTML = '';
+                    if (msgs.length < messagesLimit) hasMoreMessages = false;
+                    msgs.reverse();
+                    if (loadMore) {
+                        msgs.forEach(m => {
+                            m.isMe = (m.sender === currentUser.phone);
+                            prependMessage(m);
+                        });
                     } else {
-                        const index = localDB.messages.findIndex(m => m.id === msg.id);
-                        if (index !== -1) {
-                            localDB.messages[index].reactions = reactions;
-                            saveLocalDB();
-                        }
+                        msgs.forEach(m => {
+                            m.isMe = (m.sender === currentUser.phone);
+                            appendMessage(m);
+                        });
+                    }
+                    messagesOffset += msgs.length;
+                } catch (e) {
+                    console.error('Ошибка загрузки сообщений:', e);
+                    if (!loadMore) messagesContainer.innerHTML = '<div style="text-align:center;color:#f44336;">Ошибка загрузки</div>';
+                } finally {
+                    isLoadingMessages = false;
+                }
+            }
+
+            function showReplyBar(msg) {
+                let existingBar = document.getElementById('replyBar');
+                if (existingBar) existingBar.remove();
+
+                let bar = document.createElement('div');
+                bar.id = 'replyBar';
+                bar.innerHTML = `
+                    <span>↩️ Ответ на: ${msg.text || (msg.image ? '📷 Изображение' : '')}</span>
+                    <button id="cancelReplyBtn">✕</button>
+                `;
+                chatInput.parentNode.insertBefore(bar, chatInput);
+                document.getElementById('cancelReplyBtn').onclick = () => {
+                    bar.remove();
+                    replyToMessage = null;
+                    messageInput.placeholder = 'Сообщение...';
+                };
+                messageInput.placeholder = 'Ваш ответ...';
+            }
+
+            function appendMessage(msg) {
+                let w = document.createElement('div');
+                w.className = 'message-wrapper';
+                w.dataset.id = msg.id;
+                w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+
+                if (msg.reply_to) {
+                    let replyDiv = document.createElement('div');
+                    replyDiv.className = 'reply-indicator';
+                    replyDiv.style.fontSize = '12px';
+                    replyDiv.style.opacity = '0.8';
+                    replyDiv.style.marginBottom = '2px';
+                    replyDiv.style.padding = '2px 8px';
+                    replyDiv.style.borderLeft = '3px solid #3390ec';
+                    replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
+                    replyDiv.style.borderRadius = '4px';
+                    replyDiv.textContent = '↩️ Загрузка...';
+                    w.appendChild(replyDiv);
+
+                    let db = loadDB();
+                    let originalMsg = db.messages.find(m => m.id == msg.reply_to);
+                    if (!originalMsg) {
+                        replyDiv.textContent = '↩️ Сообщение не найдено';
+                    } else {
+                        let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                        replyDiv.textContent = `↩️ ${replyText}`;
+                    }
+                }
+
+                let md = document.createElement('div');
+                md.className = `message ${msg.isMe ? 'own' : ''}`;
+                if (msg.image) {
+                    let img = document.createElement('img');
+                    img.src = msg.image;
+                    img.onclick = () => window.open(msg.image);
+                    md.appendChild(img);
+                } else {
+                    md.textContent = msg.text;
+                }
+                let t = document.createElement('div');
+                t.className = 'message-time';
+                t.textContent = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                let f = document.createElement('div');
+                f.className = 'message-footer';
+
+                let r = document.createElement('button');
+                r.className = 'reaction-btn';
+                let reactions = msg.reactions || {};
+                let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
+                r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
+                r.onclick = (e) => {
+                    e.stopPropagation();
+                    currentReactionMsg = msg;
+                    let rect = e.target.getBoundingClientRect();
+                    showFloatingReaction('❤️', rect.left, rect.top);
+                    reactionPickerModal.style.display = 'flex';
+                };
+                f.appendChild(r);
+
+                let replyBtn = document.createElement('button');
+                replyBtn.className = 'reply-btn';
+                replyBtn.innerHTML = '↩️';
+                replyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    replyToMessage = msg;
+                    showReplyBar(msg);
+                };
+                f.appendChild(replyBtn);
+
+                w.appendChild(md);
+                w.appendChild(t);
+                w.appendChild(f);
+                messagesContainer.appendChild(w);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function prependMessage(msg) {
+                let w = document.createElement('div');
+                w.className = 'message-wrapper';
+                w.dataset.id = msg.id;
+                w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+
+                if (msg.reply_to) {
+                    let replyDiv = document.createElement('div');
+                    replyDiv.style.fontSize = '12px';
+                    replyDiv.style.opacity = '0.7';
+                    replyDiv.style.marginBottom = '2px';
+                    replyDiv.style.padding = '2px 8px';
+                    replyDiv.style.borderLeft = '3px solid #3390ec';
+                    replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
+                    replyDiv.style.borderRadius = '4px';
+                    replyDiv.textContent = '↩️ Загрузка...';
+                    w.appendChild(replyDiv);
+
+                    let db = loadDB();
+                    let originalMsg = db.messages.find(m => m.id == msg.reply_to);
+                    if (!originalMsg) {
+                        replyDiv.textContent = '↩️ Сообщение не найдено';
+                    } else {
+                        let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                        replyDiv.textContent = `↩️ ${replyText}`;
+                    }
+                }
+
+                let md = document.createElement('div');
+                md.className = `message ${msg.isMe ? 'own' : ''}`;
+                if (msg.image) {
+                    let img = document.createElement('img');
+                    img.src = msg.image;
+                    img.onclick = () => window.open(msg.image);
+                    md.appendChild(img);
+                } else {
+                    md.textContent = msg.text;
+                }
+                let t = document.createElement('div');
+                t.className = 'message-time';
+                t.textContent = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                let f = document.createElement('div');
+                f.className = 'message-footer';
+
+                let r = document.createElement('button');
+                r.className = 'reaction-btn';
+                let reactions = msg.reactions || {};
+                let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
+                r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
+                r.onclick = (e) => {
+                    e.stopPropagation();
+                    currentReactionMsg = msg;
+                    reactionPickerModal.style.display = 'flex';
+                };
+                f.appendChild(r);
+
+                let replyBtn = document.createElement('button');
+                replyBtn.className = 'reply-btn';
+                replyBtn.innerHTML = '↩️';
+                replyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    replyToMessage = msg;
+                    showReplyBar(msg);
+                };
+                f.appendChild(replyBtn);
+
+                w.appendChild(md);
+                w.appendChild(t);
+                w.appendChild(f);
+                messagesContainer.insertBefore(w, messagesContainer.firstChild);
+            }
+
+            // ========== РЕАКЦИИ ==========
+            function showFloatingReaction(reaction, x, y) {
+                const div = document.createElement('div');
+                div.className = 'floating-reaction';
+                div.textContent = reaction;
+                div.style.left = x + 'px';
+                div.style.top = y + 'px';
+                document.body.appendChild(div);
+                setTimeout(() => div.remove(), 1000);
+            }
+
+            reactionOptions.forEach(btn => {
+                btn.onclick = () => {
+                    let reaction = btn.dataset.reaction;
+                    if (!currentReactionMsg) return;
+                    let msg = currentReactionMsg;
+                    let reactions = msg.reactions || {};
+                    reactions[reaction] = (reactions[reaction] || 0) + 1;
+                    let db = loadDB();
+                    let index = db.messages.findIndex(m => m.id === msg.id);
+                    if (index !== -1) {
+                        db.messages[index].reactions = reactions;
+                        saveDB(db);
                     }
                     reactionPickerModal.style.display = 'none';
                     currentReactionMsg = null;
                     showFloatingReaction(reaction, window.innerWidth/2, window.innerHeight/2);
-                } catch (error) {
-                    console.error('Ошибка при обновлении реакции:', error);
-                    alert('Не удалось поставить реакцию.');
+                };
+            });
+            closeReactionPicker.onclick = () => {
+                reactionPickerModal.style.display = 'none';
+                currentReactionMsg = null;
+            };
+
+            // ========== ОТПРАВКА СООБЩЕНИЯ ==========
+            sendButton.onclick = () => {
+                let text = messageInput.value.trim();
+                if (!text || !currentUser || !currentContactId) return;
+                let chatId = getChatId(currentContactId);
+                let msgObj = {
+                    id: Date.now() + Math.random(),
+                    chat_id: chatId,
+                    sender: currentUser.phone,
+                    text: text,
+                    time: new Date().toISOString(),
+                    reactions: {}
+                };
+                if (replyToMessage) {
+                    msgObj.reply_to = replyToMessage.id;
+                }
+                let db = loadDB();
+                db.messages.push(msgObj);
+                saveDB(db);
+                msgObj.isMe = true;
+                appendMessage(msgObj);
+
+                messageInput.value = '';
+                let bar = document.getElementById('replyBar');
+                if (bar) bar.remove();
+                replyToMessage = null;
+                messageInput.placeholder = 'Сообщение...';
+            };
+
+            messageInput.onkeypress = e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendButton.click();
                 }
             };
-        });
-        closeReactionPicker.onclick = () => {
-            reactionPickerModal.style.display = 'none';
-            currentReactionMsg = null;
-        };
 
-        sendButton.onclick = async () => {
-            let text = messageInput.value.trim();
-            if (!text || !currentUser || !currentContactId) return;
-            let chatId = getChatId(currentContactId);
-            let msgObj = {
-                id: Date.now() + Math.random(),
-                chat_id: chatId,
-                sender: currentUser.phone,
-                text: text,
-                time: new Date().toISOString(),
-                reactions: {}
-            };
-            if (replyToMessage) {
-                msgObj.reply_to = replyToMessage.id;
-            }
-            console.log('📤 Отправка в chatId:', chatId, 'объект:', msgObj);
-            try {
-                if (!useLocalFallback && supabaseClient) {
-                    await supabaseClient
-                        .from('messages')
-                        .insert([msgObj]);
-                } else {
-                    localDB.messages.push(msgObj);
-                    saveLocalDB();
-                    msgObj.isMe = true;
-                    appendMessage(msgObj);
+            // ========== ПРОКРУТКА ДЛЯ ПАГИНАЦИИ ==========
+            messagesContainer.addEventListener('scroll', () => {
+                if (messagesContainer.scrollTop === 0 && hasMoreMessages && !isLoadingMessages) {
+                    loadMessages(getChatId(currentContactId), true);
                 }
-            } catch (e) {
-                alert('Ошибка отправки: ' + e.message);
-            }
+            });
 
-            messageInput.value = '';
-            let bar = document.getElementById('replyBar');
-            if (bar) bar.remove();
-            replyToMessage = null;
-            messageInput.placeholder = 'Сообщение...';
-        };
-
-        messageInput.onkeypress = e => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendButton.click();
-            }
-        };
-
-        messagesContainer.addEventListener('scroll', () => {
-            if (messagesContainer.scrollTop === 0 && hasMoreMessages && !isLoadingMessages) {
-                loadMessages(getChatId(currentContactId), true);
-            }
-        });
-
-        // ---------- Каналы (полная реализация) ----------
-        async function renderChannelsList(searchTerm = '') {
-            let channels = [];
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('channels').select('*');
-                    channels = data || [];
-                } catch (e) {
-                    console.warn('Ошибка загрузки каналов из Supabase, используем локальные');
-                    useLocalFallback = true;
+            // ========== КАНАЛЫ ==========
+            function renderChannelsList(searchTerm = '') {
+                let db = loadDB();
+                let channels = db.channels || [];
+                let filtered = channels.filter(ch => 
+                    ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
+                    (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                     (ch.username && ch.username.toLowerCase().includes(searchTerm.toLowerCase())))
+                );
+                channelsListEl.innerHTML = '';
+                if (!filtered.length) {
+                    channelsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет каналов</div>';
+                    return;
                 }
+                filtered.forEach(ch => {
+                    let div = document.createElement('div');
+                    div.className = `channel-item ${ch.id === currentContactId ? 'active' : ''}`;
+                    let badges = '';
+                    if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
+                    if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
+                    div.innerHTML = `
+                        <div class="channel-avatar">${ch.avatar ? `<img src="${ch.avatar}">` : '📢'}</div>
+                        <div class="channel-info">
+                            <div class="channel-name">${ch.name} ${badges}</div>
+                            <div class="channel-subscribers">${ch.subscribers ? ch.subscribers.length : 0} подписчиков</div>
+                            ${ch.username ? `<div class="channel-username">@${ch.username}</div>` : ''}
+                        </div>
+                    `;
+                    div.onclick = () => switchChannelView(ch.id);
+                    channelsListEl.appendChild(div);
+                });
             }
-            if (useLocalFallback) {
-                channels = localDB.channels;
-            }
-            let filtered = channels.filter(ch => 
-                ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
-                (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                 (ch.username && ch.username.toLowerCase().includes(searchTerm.toLowerCase())))
-            );
-            channelsListEl.innerHTML = '';
-            if (!filtered.length) {
-                channelsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет каналов</div>';
-                return;
-            }
-            filtered.forEach(ch => {
-                let div = document.createElement('div');
-                div.className = `channel-item ${ch.id === currentContactId ? 'active' : ''}`;
+
+            channelSearchInput.addEventListener('input', (e) => {
+                renderChannelsList(e.target.value);
+            });
+
+            function switchChannelView(chId) {
+                currentContactId = String(chId);
+                messagesOffset = 0;
+                hasMoreMessages = true;
+                renderChannelsList(channelSearchInput.value);
+                let db = loadDB();
+                let ch = db.channels.find(c => c.id == chId);
+                if (!ch) return;
                 let badges = '';
                 if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
                 if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
-                div.innerHTML = `
-                    <div class="channel-avatar">${ch.avatar ? `<img src="${ch.avatar}">` : '📢'}</div>
-                    <div class="channel-info">
-                        <div class="channel-name">${ch.name} ${badges}</div>
-                        <div class="channel-subscribers">${ch.subscribers ? ch.subscribers.length : 0} подписчиков</div>
-                        ${ch.username ? `<div class="channel-username">@${ch.username}</div>` : ''}
-                    </div>
-                `;
-                div.onclick = () => switchChannelView(ch.id);
-                channelsListEl.appendChild(div);
-            });
-        }
-
-        channelSearchInput.addEventListener('input', (e) => {
-            renderChannelsList(e.target.value);
-        });
-
-        async function switchChannelView(chId) {
-            if (unsubscribeMessages && unsubscribeMessages.unsubscribe) {
-                unsubscribeMessages.unsubscribe();
-                unsubscribeMessages = null;
-            }
-            if (unsubscribeTyping && unsubscribeTyping.unsubscribe) {
-                unsubscribeTyping.unsubscribe();
-                unsubscribeTyping = null;
-            }
-            if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) {
-                unsubscribeMessageUpdates.unsubscribe();
-                unsubscribeMessageUpdates = null;
-            }
-
-            currentContactId = String(chId);
-            messagesOffset = 0;
-            hasMoreMessages = true;
-            renderChannelsList(channelSearchInput.value);
-            let ch;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('channels').select('*').eq('id', chId).single();
-                    ch = data;
-                } catch (e) {}
-            }
-            if (!ch) {
-                ch = localDB.channels.find(c => c.id == chId);
-            }
-            if (!ch) return;
-            let badges = '';
-            if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
-            if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
-            chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
-            chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
-            chatHeaderActions.innerHTML = '';
-            let isAdmin = ch.createdBy === currentUser.phone;
-            if (!isAdmin) {
-                let btn = document.createElement('button');
-                btn.textContent = 'Отписаться';
-                btn.onclick = async () => {
-                    let idx = ch.subscribers.indexOf(currentUser.phone);
-                    if (idx !== -1) ch.subscribers.splice(idx, 1);
-                    if (!useLocalFallback && supabaseClient) {
-                        await supabaseClient.from('channels').update({ subscribers: ch.subscribers }).eq('id', ch.id);
-                    } else {
-                        const index = localDB.channels.findIndex(c => c.id == ch.id);
+                chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
+                chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
+                chatHeaderActions.innerHTML = '';
+                let isAdmin = ch.createdBy === currentUser.phone;
+                if (!isAdmin) {
+                    let btn = document.createElement('button');
+                    btn.textContent = 'Отписаться';
+                    btn.onclick = () => {
+                        let idx = ch.subscribers.indexOf(currentUser.phone);
+                        if (idx !== -1) ch.subscribers.splice(idx, 1);
+                        let db = loadDB();
+                        let index = db.channels.findIndex(c => c.id == ch.id);
                         if (index !== -1) {
-                            localDB.channels[index].subscribers = ch.subscribers;
-                            saveLocalDB();
+                            db.channels[index].subscribers = ch.subscribers;
+                            saveDB(db);
                         }
-                    }
-                    renderChannelsList();
-                    clearChatArea();
-                };
-                chatHeaderActions.appendChild(btn);
-            } else {
-                let settingsBtn = document.createElement('button');
-                settingsBtn.textContent = '⚙️ Настройки';
-                settingsBtn.onclick = () => {
-                    channelSettingsName.value = ch.name;
-                    channelSettingsUsername.value = ch.username || '';
-                    channelSettingsModal.style.display = 'flex';
-                    window.currentChannelForSettings = ch.id;
-                };
-                chatHeaderActions.appendChild(settingsBtn);
-            }
-            subscribeToMessages(chId);
-            if (isAdmin) {
-                chatInput.style.display = 'flex';
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-            } else {
-                chatInput.style.display = 'none';
-            }
-        }
-
-        saveChannelSettings.onclick = async () => {
-            let chId = window.currentChannelForSettings;
-            if (!chId) return;
-            let name = channelSettingsName.value.trim();
-            let username = channelSettingsUsername.value.trim().toLowerCase();
-            let avatar = null;
-            if (channelSettingsAvatarInput.files[0]) {
-                let reader = new FileReader();
-                reader.onload = async ev => {
-                    avatar = ev.target.result;
-                    await updateChannel(chId, name, username, avatar);
-                };
-                reader.readAsDataURL(channelSettingsAvatarInput.files[0]);
-            } else {
-                await updateChannel(chId, name, username, null);
-            }
-        };
-
-        async function updateChannel(chId, name, username, avatar) {
-            let updates = {};
-            if (name) updates.name = name;
-            updates.username = username || null;
-            if (avatar) updates.avatar = avatar;
-
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    await supabaseClient.from('channels').update(updates).eq('id', chId);
-                } catch (e) {
-                    console.warn('Ошибка обновления канала в Supabase, обновляем локально');
-                    useLocalFallback = true;
+                        renderChannelsList();
+                        clearChatArea();
+                    };
+                    chatHeaderActions.appendChild(btn);
+                } else {
+                    let settingsBtn = document.createElement('button');
+                    settingsBtn.textContent = '⚙️ Настройки';
+                    settingsBtn.onclick = () => {
+                        channelSettingsName.value = ch.name;
+                        channelSettingsUsername.value = ch.username || '';
+                        channelSettingsModal.style.display = 'flex';
+                        window.currentChannelForSettings = ch.id;
+                    };
+                    chatHeaderActions.appendChild(settingsBtn);
+                }
+                loadMessages(chId, false);
+                if (isAdmin) {
+                    chatInput.style.display = 'flex';
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                } else {
+                    chatInput.style.display = 'none';
                 }
             }
-            const index = localDB.channels.findIndex(c => c.id == chId);
-            if (index !== -1) {
-                localDB.channels[index] = { ...localDB.channels[index], ...updates };
-                saveLocalDB();
+
+            saveChannelSettings.onclick = () => {
+                let chId = window.currentChannelForSettings;
+                if (!chId) return;
+                let name = channelSettingsName.value.trim();
+                let username = channelSettingsUsername.value.trim().toLowerCase();
+                let avatar = null;
+                if (channelSettingsAvatarInput.files[0]) {
+                    let reader = new FileReader();
+                    reader.onload = ev => {
+                        avatar = ev.target.result;
+                        updateChannel(chId, name, username, avatar);
+                    };
+                    reader.readAsDataURL(channelSettingsAvatarInput.files[0]);
+                } else {
+                    updateChannel(chId, name, username, null);
+                }
+            };
+
+            function updateChannel(chId, name, username, avatar) {
+                let db = loadDB();
+                let index = db.channels.findIndex(c => c.id == chId);
+                if (index !== -1) {
+                    if (name) db.channels[index].name = name;
+                    db.channels[index].username = username || null;
+                    if (avatar) db.channels[index].avatar = avatar;
+                    saveDB(db);
+                }
+                channelSettingsModal.style.display = 'none';
+                renderChannelsList();
+                switchChannelView(chId);
             }
 
-            channelSettingsModal.style.display = 'none';
-            renderChannelsList();
-            switchChannelView(chId);
-        }
+            deleteChannelBtn.onclick = () => {
+                let chId = window.currentChannelForSettings;
+                if (!chId) return;
+                if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
+                let db = loadDB();
+                db.channels = db.channels.filter(c => c.id != chId);
+                saveDB(db);
+                channelSettingsModal.style.display = 'none';
+                initMode('channels');
+                clearChatArea();
+            };
 
-        deleteChannelBtn.onclick = async () => {
-            let chId = window.currentChannelForSettings;
-            if (!chId) return;
-            if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
-            if (!useLocalFallback && supabaseClient) {
-                await supabaseClient.from('channels').delete().eq('id', chId);
-            }
-            localDB.channels = localDB.channels.filter(c => c.id != chId);
-            saveLocalDB();
-            channelSettingsModal.style.display = 'none';
-            initMode('channels');
-            clearChatArea();
-        };
+            closeChannelSettings.onclick = () => {
+                channelSettingsModal.style.display = 'none';
+            };
 
-        closeChannelSettings.onclick = () => {
-            channelSettingsModal.style.display = 'none';
-        };
+            createChannelBtn.onclick = () => createChannelModal.style.display = 'flex';
+            confirmCreateChannel.onclick = () => {
+                let name = channelNameInput.value.trim();
+                let username = channelUsernameInput.value.trim().toLowerCase();
+                if (!name) return;
 
-        createChannelBtn.onclick = () => createChannelModal.style.display = 'flex';
-        confirmCreateChannel.onclick = async () => {
-            let name = channelNameInput.value.trim();
-            let username = channelUsernameInput.value.trim().toLowerCase();
-            if (!name) return;
-
-            if (username) {
-                let existing;
-                if (!useLocalFallback && supabaseClient) {
-                    try {
-                        const { data } = await supabaseClient.from('channels').select('id').eq('username', username).maybeSingle();
-                        existing = data;
-                    } catch (e) {}
-                }
-                if (!existing) {
-                    existing = localDB.channels.find(c => c.username === username);
-                }
-                if (existing) {
+                let db = loadDB();
+                if (username && db.channels.find(c => c.username === username)) {
                     alert('Этот @юзернейм уже занят');
                     return;
                 }
-            }
 
-            let avatar = null;
-            if (channelAvatarInput.files[0]) {
-                let reader = new FileReader();
-                reader.onload = async ev => {
-                    avatar = ev.target.result;
-                    await finishCreate(name, username, avatar);
-                };
-                reader.readAsDataURL(channelAvatarInput.files[0]);
-            } else {
-                await finishCreate(name, username, null);
-            }
-        };
-        async function finishCreate(name, username, avatar) {
-            let newCh = {
-                id: Date.now() + Math.random(),
-                name,
-                username,
-                avatar,
-                createdBy: currentUser.phone,
-                subscribers: [currentUser.phone],
-                badges: {}
+                if (channelAvatarInput.files[0]) {
+                    let reader = new FileReader();
+                    reader.onload = ev => {
+                        let avatar = ev.target.result;
+                        finishCreate(name, username, avatar);
+                    };
+                    reader.readAsDataURL(channelAvatarInput.files[0]);
+                } else {
+                    finishCreate(name, username, null);
+                }
             };
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('channels').insert([newCh]).select().single();
-                    newCh = data;
-                } catch (e) {
-                    console.warn('Ошибка создания канала в Supabase, сохраняем локально');
-                    useLocalFallback = true;
-                }
+            function finishCreate(name, username, avatar) {
+                let newCh = {
+                    id: Date.now() + Math.random(),
+                    name,
+                    username,
+                    avatar,
+                    createdBy: currentUser.phone,
+                    subscribers: [currentUser.phone],
+                    badges: {}
+                };
+                let db = loadDB();
+                db.channels.push(newCh);
+                saveDB(db);
+                channelNameInput.value = '';
+                channelUsernameInput.value = '';
+                channelAvatarInput.value = '';
+                createChannelModal.style.display = 'none';
+                initMode('channels');
+                switchChannelView(newCh.id);
             }
-            localDB.channels.push(newCh);
-            saveLocalDB();
-            channelNameInput.value = '';
-            channelUsernameInput.value = '';
-            channelAvatarInput.value = '';
-            createChannelModal.style.display = 'none';
-            initMode('channels');
-            switchChannelView(newCh.id);
-        }
-        cancelCreateChannel.onclick = () => {
-            createChannelModal.style.display = 'none';
-            channelNameInput.value = '';
-            channelUsernameInput.value = '';
-        };
+            cancelCreateChannel.onclick = () => {
+                createChannelModal.style.display = 'none';
+                channelNameInput.value = '';
+                channelUsernameInput.value = '';
+            };
 
-        let allChannelsBtn = document.getElementById('showAllChannelsBtn');
-        if (!allChannelsBtn) {
-            allChannelsBtn = document.createElement('button');
-            allChannelsBtn.id = 'showAllChannelsBtn';
-            allChannelsBtn.textContent = '📢 Все каналы';
-            allChannelsBtn.style.margin = '10px';
-            allChannelsBtn.style.padding = '10px';
-            allChannelsBtn.style.width = 'calc(100% - 20px)';
-            allChannelsBtn.style.border = 'none';
-            allChannelsBtn.style.borderRadius = '20px';
-            allChannelsBtn.style.background = '#2b5278';
-            allChannelsBtn.style.color = '#fff';
-            allChannelsBtn.style.cursor = 'pointer';
-            document.querySelector('.channel-actions').appendChild(allChannelsBtn);
-        }
+            // Кнопка "Все каналы"
+            let allChannelsBtn = document.getElementById('showAllChannelsBtn');
+            if (!allChannelsBtn) {
+                allChannelsBtn = document.createElement('button');
+                allChannelsBtn.id = 'showAllChannelsBtn';
+                allChannelsBtn.textContent = '📢 Все каналы';
+                allChannelsBtn.style.margin = '10px';
+                allChannelsBtn.style.padding = '10px';
+                allChannelsBtn.style.width = 'calc(100% - 20px)';
+                allChannelsBtn.style.border = 'none';
+                allChannelsBtn.style.borderRadius = '20px';
+                allChannelsBtn.style.background = '#2b5278';
+                allChannelsBtn.style.color = '#fff';
+                allChannelsBtn.style.cursor = 'pointer';
+                document.querySelector('.channel-actions').appendChild(allChannelsBtn);
+            }
 
-        allChannelsBtn.onclick = async () => {
-            let allChannels = [];
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('channels').select('*');
-                    allChannels = data || [];
-                } catch (e) {
-                    useLocalFallback = true;
-                }
-            }
-            if (useLocalFallback) {
-                allChannels = localDB.channels;
-            }
-            allChannelsList.innerHTML = '';
-            allChannels.forEach(ch => {
-                let div = document.createElement('div');
-                div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
-                let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
-                div.innerHTML = `
-                    <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
-                    <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
-                `;
-                let btn = document.createElement('button');
-                btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
-                btn.disabled = isSub;
-                btn.onclick = async () => {
-                    if (!isSub) {
-                        if (!ch.subscribers) ch.subscribers = [];
-                        ch.subscribers.push(currentUser.phone);
-                        if (!useLocalFallback && supabaseClient) {
-                            await supabaseClient.from('channels').update({ subscribers: ch.subscribers }).eq('id', ch.id);
-                        } else {
-                            const index = localDB.channels.findIndex(c => c.id == ch.id);
+            allChannelsBtn.onclick = () => {
+                let db = loadDB();
+                let allChannels = db.channels;
+                allChannelsList.innerHTML = '';
+                allChannels.forEach(ch => {
+                    let div = document.createElement('div');
+                    div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
+                    let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
+                    div.innerHTML = `
+                        <strong>${ch.name}</strong> (${ch.subscribers ? ch.subscribers.length : 0} подписчиков)<br>
+                        <small>Создатель: ${ch.createdBy ? ch.createdBy.slice(0,5) + '...' : 'неизвестно'}</small>
+                    `;
+                    let btn = document.createElement('button');
+                    btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
+                    btn.disabled = isSub;
+                    btn.onclick = () => {
+                        if (!isSub) {
+                            if (!ch.subscribers) ch.subscribers = [];
+                            ch.subscribers.push(currentUser.phone);
+                            let db = loadDB();
+                            let index = db.channels.findIndex(c => c.id == ch.id);
                             if (index !== -1) {
-                                localDB.channels[index].subscribers = ch.subscribers;
-                                saveLocalDB();
+                                db.channels[index].subscribers = ch.subscribers;
+                                saveDB(db);
                             }
+                            btn.disabled = true;
+                            btn.textContent = '✓ Подписан';
+                            renderChannelsList();
                         }
-                        btn.disabled = true;
-                        btn.textContent = '✓ Подписан';
-                        renderChannelsList();
-                    }
-                };
-                div.appendChild(btn);
-                allChannelsList.appendChild(div);
-            });
-            allChannelsModal.style.display = 'flex';
-        };
-
-        closeAllChannelsModal.onclick = () => {
-            allChannelsModal.style.display = 'none';
-        };
-
-        // ---------- Друзья (полная реализация) ----------
-        function renderFriendsView() {
-            ensureFriends(currentUser);
-            friendsView.innerHTML = '';
-
-            let addBtn = document.createElement('button');
-            addBtn.textContent = '➕ Добавить друга';
-            addBtn.style.margin = '10px';
-            addBtn.style.padding = '10px';
-            addBtn.style.width = 'calc(100% - 20px)';
-            addBtn.style.border = 'none';
-            addBtn.style.borderRadius = '20px';
-            addBtn.style.background = '#3390ec';
-            addBtn.style.color = '#fff';
-            addBtn.style.cursor = 'pointer';
-            addBtn.onclick = () => {
-                addFriendModal.style.display = 'flex';
-                friendSearchResult.innerHTML = '';
+                    };
+                    div.appendChild(btn);
+                    allChannelsList.appendChild(div);
+                });
+                allChannelsModal.style.display = 'flex';
             };
-            friendsView.appendChild(addBtn);
 
-            let friendsSection = document.createElement('div');
-            friendsSection.className = 'friend-section';
-            friendsSection.innerHTML = '<h3>Мои друзья</h3>';
-            if (currentUser.friends.list.length === 0) {
-                friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
-            } else {
-                const friendPhones = currentUser.friends.list;
-                Promise.all(friendPhones.map(async phone => {
-                    let friend = friendsCache.get(phone);
-                    if (!friend) {
-                        if (!useLocalFallback && supabaseClient) {
-                            try {
-                                const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                                friend = data;
-                            } catch (e) {}
-                        }
-                        if (!friend) {
-                            friend = localDB.users.find(u => u.phone === phone);
-                        }
-                        if (friend) friendsCache.set(phone, friend);
-                    }
-                    return { phone, friend };
-                })).then(results => {
-                    results.forEach(({ phone, friend }) => {
+            closeAllChannelsModal.onclick = () => {
+                allChannelsModal.style.display = 'none';
+            };
+
+            // ========== ДРУЗЬЯ ==========
+            function renderFriendsView() {
+                ensureFriends(currentUser);
+                friendsView.innerHTML = '';
+
+                let addBtn = document.createElement('button');
+                addBtn.textContent = '➕ Добавить друга';
+                addBtn.style.margin = '10px';
+                addBtn.style.padding = '10px';
+                addBtn.style.width = 'calc(100% - 20px)';
+                addBtn.style.border = 'none';
+                addBtn.style.borderRadius = '20px';
+                addBtn.style.background = '#3390ec';
+                addBtn.style.color = '#fff';
+                addBtn.style.cursor = 'pointer';
+                addBtn.onclick = () => {
+                    addFriendModal.style.display = 'flex';
+                    friendSearchResult.innerHTML = '';
+                };
+                friendsView.appendChild(addBtn);
+
+                // Мои друзья
+                let friendsSection = document.createElement('div');
+                friendsSection.className = 'friend-section';
+                friendsSection.innerHTML = '<h3>Мои друзья</h3>';
+                if (currentUser.friends.list.length === 0) {
+                    friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
+                } else {
+                    const friendPhones = currentUser.friends.list;
+                    let db = loadDB();
+                    let friendsData = db.users.filter(u => friendPhones.includes(u.phone));
+                    friendsData.forEach(f => friendsCache.set(f.phone, f));
+                    friendPhones.forEach(phone => {
+                        let friend = friendsCache.get(phone);
                         if (!friend) return;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
@@ -1972,26 +1546,19 @@
                         };
                         friendsSection.appendChild(div);
                     });
-                });
-            }
-            friendsView.appendChild(friendsSection);
+                }
+                friendsView.appendChild(friendsSection);
 
-            let incomingSection = document.createElement('div');
-            incomingSection.className = 'friend-section';
-            incomingSection.innerHTML = '<h3>Входящие заявки</h3>';
-            if (currentUser.friends.incoming.length === 0) {
-                incomingSection.innerHTML += '<p style="color:#8e9aa6;">Нет входящих заявок</p>';
-            } else {
-                currentUser.friends.incoming.forEach(phone => {
-                    (async () => {
-                        let user;
-                        if (!useLocalFallback && supabaseClient) {
-                            try {
-                                const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                                user = data;
-                            } catch (e) {}
-                        }
-                        if (!user) user = localDB.users.find(u => u.phone === phone);
+                // Входящие заявки
+                let incomingSection = document.createElement('div');
+                incomingSection.className = 'friend-section';
+                incomingSection.innerHTML = '<h3>Входящие заявки</h3>';
+                if (currentUser.friends.incoming.length === 0) {
+                    incomingSection.innerHTML += '<p style="color:#8e9aa6;">Нет входящих заявок</p>';
+                } else {
+                    currentUser.friends.incoming.forEach(phone => {
+                        let db = loadDB();
+                        let user = db.users.find(u => u.phone === phone);
                         if (!user) return;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
@@ -2015,27 +1582,20 @@
                             rejectFriendRequest(phone);
                         };
                         incomingSection.appendChild(div);
-                    })();
-                });
-            }
-            friendsView.appendChild(incomingSection);
+                    });
+                }
+                friendsView.appendChild(incomingSection);
 
-            let outgoingSection = document.createElement('div');
-            outgoingSection.className = 'friend-section';
-            outgoingSection.innerHTML = '<h3>Исходящие заявки</h3>';
-            if (currentUser.friends.outgoing.length === 0) {
-                outgoingSection.innerHTML += '<p style="color:#8e9aa6;">Нет исходящих заявок</p>';
-            } else {
-                currentUser.friends.outgoing.forEach(phone => {
-                    (async () => {
-                        let user;
-                        if (!useLocalFallback && supabaseClient) {
-                            try {
-                                const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                                user = data;
-                            } catch (e) {}
-                        }
-                        if (!user) user = localDB.users.find(u => u.phone === phone);
+                // Исходящие заявки
+                let outgoingSection = document.createElement('div');
+                outgoingSection.className = 'friend-section';
+                outgoingSection.innerHTML = '<h3>Исходящие заявки</h3>';
+                if (currentUser.friends.outgoing.length === 0) {
+                    outgoingSection.innerHTML += '<p style="color:#8e9aa6;">Нет исходящих заявок</p>';
+                } else {
+                    currentUser.friends.outgoing.forEach(phone => {
+                        let db = loadDB();
+                        let user = db.users.find(u => u.phone === phone);
                         if (!user) return;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
@@ -2052,274 +1612,236 @@
                             cancelFriendRequest(phone);
                         };
                         outgoingSection.appendChild(div);
-                    })();
-                });
-            }
-            friendsView.appendChild(outgoingSection);
-        }
-
-        searchFriendBtn.onclick = async () => {
-            ensureFriends(currentUser);
-            let username = friendUsername.value.trim();
-            if (username.startsWith('@')) username = username.slice(1);
-            if (!username) return;
-            let searchUsername = username.toLowerCase();
-            let foundUser;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('users').select('*').ilike('username', searchUsername).maybeSingle();
-                    foundUser = data;
-                } catch (e) {}
-            }
-            if (!foundUser) {
-                foundUser = localDB.users.find(u => u.username && u.username.toLowerCase() === searchUsername);
-            }
-
-            friendSearchResult.innerHTML = '';
-            if (!foundUser) {
-                friendSearchResult.innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
-                return;
-            }
-            if (foundUser.phone === currentUser.phone) {
-                friendSearchResult.innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
-                return;
-            }
-            if (currentUser.friends.list.includes(foundUser.phone)) {
-                friendSearchResult.innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
-                return;
-            }
-            if (currentUser.friends.outgoing.includes(foundUser.phone)) {
-                friendSearchResult.innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
-                return;
-            }
-            if (currentUser.friends.incoming.includes(foundUser.phone)) {
-                friendSearchResult.innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
-                return;
-            }
-
-            addFriendModal.style.display = 'none';
-            friendUsername.value = '';
-            showUserProfile(foundUser);
-        };
-
-        function showUserProfile(user) {
-            let modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'flex';
-            let badges = '';
-            if (user.badges?.blue) badges += '<span class="verified blue">✓</span>';
-            if (user.badges?.red) badges += '<span class="verified red">✓</span>';
-            modal.innerHTML = `
-                <div class="modal-content" style="width:300px;">
-                    <div class="profile-avatar" style="margin:10px auto;">${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;">` : '👤'}</div>
-                    <h3>${user.name || user.username || user.phone} ${badges}</h3>
-                    <p>@${user.username || 'нет'}</p>
-                    <button id="sendFriendRequestFromProfileBtn" style="padding:10px;background:#3390ec;color:#fff;border:none;border-radius:20px;width:100%;margin-top:10px;">Отправить заявку</button>
-                    <button id="sendMessageFromProfileBtn" style="padding:10px;background:#4caf50;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Отправить сообщение</button>
-                    <button id="closeProfileModalBtn" style="padding:10px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Закрыть</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            document.getElementById('sendFriendRequestFromProfileBtn').onclick = async () => {
-                await sendFriendRequest(user.phone);
-                document.body.removeChild(modal);
-            };
-            document.getElementById('sendMessageFromProfileBtn').onclick = () => {
-                document.body.removeChild(modal);
-                initMode('chats');
-                switchContact(user.phone);
-            };
-            document.getElementById('closeProfileModalBtn').onclick = () => {
-                document.body.removeChild(modal);
-            };
-        }
-
-        async function sendFriendRequest(targetPhone) {
-            ensureFriends(currentUser);
-            if (!currentUser.friends.outgoing.includes(targetPhone)) {
-                currentUser.friends.outgoing.push(targetPhone);
-            }
-            let targetUser;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('users').select('*').eq('phone', targetPhone).single();
-                    targetUser = data;
-                } catch (e) {}
-            }
-            if (!targetUser) targetUser = localDB.users.find(u => u.phone === targetPhone);
-            if (targetUser) {
-                ensureFriends(targetUser);
-                if (!targetUser.friends.incoming.includes(currentUser.phone)) {
-                    targetUser.friends.incoming.push(currentUser.phone);
+                    });
                 }
-                await updateUser(targetPhone, { friends: targetUser.friends });
+                friendsView.appendChild(outgoingSection);
             }
-            await updateUser(currentUser.phone, { friends: currentUser.friends });
-            renderFriendsView();
-            alert('Заявка отправлена');
-        }
 
-        async function acceptFriendRequest(phone) {
-            ensureFriends(currentUser);
-            currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-            if (!currentUser.friends.list.includes(phone)) currentUser.friends.list.push(phone);
-            let other;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                    other = data;
-                } catch (e) {}
-            }
-            if (!other) other = localDB.users.find(u => u.phone === phone);
-            if (other) {
-                ensureFriends(other);
-                other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-                if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
-                await updateUser(phone, { friends: other.friends });
-            }
-            await updateUser(currentUser.phone, { friends: currentUser.friends });
-            renderFriendsView();
-            renderContacts();
-            alert('Заявка принята');
-        }
+            // Поиск друга
+            searchFriendBtn.onclick = () => {
+                ensureFriends(currentUser);
+                let username = friendUsername.value.trim();
+                if (username.startsWith('@')) username = username.slice(1);
+                if (!username) return;
+                let searchUsername = username.toLowerCase();
+                let db = loadDB();
+                let foundUser = db.users.find(u => u.username && u.username.toLowerCase() === searchUsername);
 
-        async function rejectFriendRequest(phone) {
-            ensureFriends(currentUser);
-            currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-            let other;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                    other = data;
-                } catch (e) {}
-            }
-            if (!other) other = localDB.users.find(u => u.phone === phone);
-            if (other) {
-                ensureFriends(other);
-                other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-                await updateUser(phone, { friends: other.friends });
-            }
-            await updateUser(currentUser.phone, { friends: currentUser.friends });
-            renderFriendsView();
-        }
+                friendSearchResult.innerHTML = '';
+                if (!foundUser) {
+                    friendSearchResult.innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
+                    return;
+                }
+                if (foundUser.phone === currentUser.phone) {
+                    friendSearchResult.innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
+                    return;
+                }
+                if (currentUser.friends.list.includes(foundUser.phone)) {
+                    friendSearchResult.innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
+                    return;
+                }
+                if (currentUser.friends.outgoing.includes(foundUser.phone)) {
+                    friendSearchResult.innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
+                    return;
+                }
+                if (currentUser.friends.incoming.includes(foundUser.phone)) {
+                    friendSearchResult.innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
+                    return;
+                }
 
-        async function cancelFriendRequest(phone) {
-            ensureFriends(currentUser);
-            currentUser.friends.outgoing = currentUser.friends.outgoing.filter(p => p !== phone);
-            let other;
-            if (!useLocalFallback && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('users').select('*').eq('phone', phone).single();
-                    other = data;
-                } catch (e) {}
-            }
-            if (!other) other = localDB.users.find(u => u.phone === phone);
-            if (other) {
-                ensureFriends(other);
-                other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
-                await updateUser(phone, { friends: other.friends });
-            }
-            await updateUser(currentUser.phone, { friends: currentUser.friends });
-            renderFriendsView();
-        }
+                addFriendModal.style.display = 'none';
+                friendUsername.value = '';
+                showUserProfile(foundUser);
+            };
 
-        closeAddFriendModal.onclick = () => {
-            addFriendModal.style.display = 'none';
-            friendUsername.value = '';
-            friendSearchResult.innerHTML = '';
-        };
+            function showUserProfile(user) {
+                let modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                let badges = '';
+                if (user.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                if (user.badges?.red) badges += '<span class="verified red">✓</span>';
+                modal.innerHTML = `
+                    <div class="modal-content" style="width:300px;">
+                        <div class="profile-avatar" style="margin:10px auto;">${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;">` : '👤'}</div>
+                        <h3>${user.name || user.username || user.phone} ${badges}</h3>
+                        <p>@${user.username || 'нет'}</p>
+                        <button id="sendFriendRequestFromProfileBtn" style="padding:10px;background:#3390ec;color:#fff;border:none;border-radius:20px;width:100%;margin-top:10px;">Отправить заявку</button>
+                        <button id="sendMessageFromProfileBtn" style="padding:10px;background:#4caf50;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Отправить сообщение</button>
+                        <button id="closeProfileModalBtn" style="padding:10px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;margin-top:5px;">Закрыть</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
 
-        saveEditBtn.onclick = async () => {
-            if (editMessageId) {
-                let { msg } = editMessageId;
-                let newText = editMessageText.value.trim();
-                if (newText) {
-                    if (!useLocalFallback && supabaseClient) {
-                        await supabaseClient.from('messages').update({ text: newText }).eq('id', msg.id);
-                    } else {
-                        const index = localDB.messages.findIndex(m => m.id === msg.id);
+                document.getElementById('sendFriendRequestFromProfileBtn').onclick = () => {
+                    sendFriendRequest(user.phone);
+                    document.body.removeChild(modal);
+                };
+                document.getElementById('sendMessageFromProfileBtn').onclick = () => {
+                    document.body.removeChild(modal);
+                    initMode('chats');
+                    switchContact(user.phone);
+                };
+                document.getElementById('closeProfileModalBtn').onclick = () => {
+                    document.body.removeChild(modal);
+                };
+            }
+
+            function sendFriendRequest(targetPhone) {
+                ensureFriends(currentUser);
+                if (!currentUser.friends.outgoing.includes(targetPhone)) {
+                    currentUser.friends.outgoing.push(targetPhone);
+                }
+                let targetUser = findUserByPhone(targetPhone);
+                if (targetUser) {
+                    ensureFriends(targetUser);
+                    if (!targetUser.friends.incoming.includes(currentUser.phone)) {
+                        targetUser.friends.incoming.push(currentUser.phone);
+                    }
+                    saveUser(targetUser);
+                }
+                saveUser(currentUser);
+                renderFriendsView();
+                alert('Заявка отправлена');
+            }
+
+            function acceptFriendRequest(phone) {
+                ensureFriends(currentUser);
+                currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
+                if (!currentUser.friends.list.includes(phone)) currentUser.friends.list.push(phone);
+                let other = findUserByPhone(phone);
+                if (other) {
+                    ensureFriends(other);
+                    other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
+                    if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
+                    saveUser(other);
+                }
+                saveUser(currentUser);
+                renderFriendsView();
+                renderContacts();
+                alert('Заявка принята');
+            }
+
+            function rejectFriendRequest(phone) {
+                ensureFriends(currentUser);
+                currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
+                let other = findUserByPhone(phone);
+                if (other) {
+                    ensureFriends(other);
+                    other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
+                    saveUser(other);
+                }
+                saveUser(currentUser);
+                renderFriendsView();
+            }
+
+            function cancelFriendRequest(phone) {
+                ensureFriends(currentUser);
+                currentUser.friends.outgoing = currentUser.friends.outgoing.filter(p => p !== phone);
+                let other = findUserByPhone(phone);
+                if (other) {
+                    ensureFriends(other);
+                    other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
+                    saveUser(other);
+                }
+                saveUser(currentUser);
+                renderFriendsView();
+            }
+
+            closeAddFriendModal.onclick = () => {
+                addFriendModal.style.display = 'none';
+                friendUsername.value = '';
+                friendSearchResult.innerHTML = '';
+            };
+
+            // ========== РЕДАКТИРОВАНИЕ СООБЩЕНИЯ ==========
+            saveEditBtn.onclick = () => {
+                if (editMessageId) {
+                    let { msg } = editMessageId;
+                    let newText = editMessageText.value.trim();
+                    if (newText) {
+                        let db = loadDB();
+                        let index = db.messages.findIndex(m => m.id === msg.id);
                         if (index !== -1) {
-                            localDB.messages[index].text = newText;
-                            saveLocalDB();
+                            db.messages[index].text = newText;
+                            saveDB(db);
                         }
                     }
+                    editMessageModal.style.display = 'none';
+                    editMessageId = null;
                 }
+            };
+            cancelEditBtn.onclick = () => {
                 editMessageModal.style.display = 'none';
                 editMessageId = null;
-            }
-        };
-        cancelEditBtn.onclick = () => {
-            editMessageModal.style.display = 'none';
-            editMessageId = null;
-        };
-
-        function initSpeech() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                micButton.style.display = 'none';
-                return;
-            }
-            let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            let rec = new SR();
-            rec.lang = 'ru-RU';
-            rec.interimResults = false;
-            micButton.onclick = () => {
-                micButton.style.backgroundColor = '#f44336';
-                rec.start();
             };
-            rec.onresult = e => {
-                messageInput.value = e.results[0][0].transcript;
-                micButton.style.backgroundColor = '';
-            };
-            rec.onerror = () => micButton.style.backgroundColor = '';
-            rec.onend = () => micButton.style.backgroundColor = '';
-        }
 
-        themeToggle.onclick = () => {
-            let b = document.body;
-            b.classList.toggle('light');
-            b.classList.toggle('dark');
-            themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
-        };
-
-        function clearChatArea() {
-            chatHeaderTitle.textContent = 'Выберите чат';
-            chatHeaderSubtitle.textContent = '';
-            chatHeaderActions.innerHTML = '';
-            messagesContainer.innerHTML = '';
-            chatInput.style.display = 'none';
-            typingIndicator.textContent = '';
-        }
-
-        function updateStats() {
-            // Можно добавить подсчёт подписчиков
-        }
-
-        (async function init() {
-            await checkSupabaseConnection();
-            if (useLocalFallback) {
-                console.log('📦 Работаем в локальном режиме (данные сохраняются в localStorage)');
-                if (localDB.users.length === 0) {
-                    const testUser = {
-                        phone: '+79016135086',
-                        password: hashPassword('123456'),
-                        username: 'test',
-                        name: 'Тестовый',
-                        avatar: null,
-                        badges: { blue: false, red: false },
-                        premiumUntil: null,
-                        friends: { list: [], incoming: [], outgoing: [] },
-                        last_seen: new Date().toISOString()
-                    };
-                    localDB.users.push(testUser);
-                    saveLocalDB();
+            // ========== ГОЛОСОВОЙ ВВОД ==========
+            function initSpeech() {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    micButton.style.display = 'none';
+                    return;
                 }
+                let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                let rec = new SR();
+                rec.lang = 'ru-RU';
+                rec.interimResults = false;
+                micButton.onclick = () => {
+                    micButton.style.backgroundColor = '#f44336';
+                    rec.start();
+                };
+                rec.onresult = e => {
+                    messageInput.value = e.results[0][0].transcript;
+                    micButton.style.backgroundColor = '';
+                };
+                rec.onerror = () => micButton.style.backgroundColor = '';
+                rec.onend = () => micButton.style.backgroundColor = '';
             }
+
+            // ========== ТЕМА ==========
+            themeToggle.onclick = () => {
+                let b = document.body;
+                b.classList.toggle('light');
+                b.classList.toggle('dark');
+                themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
+            };
+
+            function clearChatArea() {
+                chatHeaderTitle.textContent = 'Выберите чат';
+                chatHeaderSubtitle.textContent = '';
+                chatHeaderActions.innerHTML = '';
+                messagesContainer.innerHTML = '';
+                chatInput.style.display = 'none';
+                typingIndicator.textContent = '';
+            }
+
+            function updateStats() {
+                // Можно реализовать подсчёт подписчиков
+            }
+
+            // ========== ИНИЦИАЛИЗАЦИЯ ==========
+            // Создаём тестового пользователя, если база пуста
+            let db = loadDB();
+            if (db.users.length === 0) {
+                let testUser = {
+                    phone: '+79016135086',
+                    password: hashPassword('123456'),
+                    username: 'test',
+                    name: 'Тестовый',
+                    avatar: null,
+                    badges: { blue: false, red: false },
+                    premiumUntil: null,
+                    friends: { list: [], incoming: [], outgoing: [] },
+                    last_seen: new Date().toISOString()
+                };
+                db.users.push(testUser);
+                saveDB(db);
+            }
+
             phoneInput.value = '+7';
             passwordInput.value = '';
             updateLoginButtonState();
         })();
-    })();
     </script>
 </body>
 </html>
