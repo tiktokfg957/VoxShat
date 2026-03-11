@@ -350,6 +350,10 @@
             let messagesOffset = 0;
             let friendsCache = new Map();
 
+            // Для polling (проверки новых сообщений)
+            let pollingInterval = null;
+            let currentPollChatId = null;
+
             // ========== РАБОТА С LOCALSTORAGE ==========
             function loadDB() {
                 return {
@@ -542,7 +546,7 @@
             selectCountryBtn.onclick = () => { countryModal.style.display = 'flex'; };
             closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
             populateCountryList();
-            updateCountryButton(); // Устанавливаем начальное значение
+            updateCountryButton();
 
             // Эмодзи-пикер
             const emojis = ['😊','😂','❤️','👍','🔥','😢','🎉','😍','🤔','👌','🙏','💯','⭐','🍕','⚽','🏀','🎵','📚','✈️','🏠'];
@@ -730,6 +734,7 @@
                 loginError.textContent = '';
                 currentUser = null;
                 currentUserPhone = null;
+                stopPolling(); // остановить polling при выходе
                 document.getElementById('debugInfo').innerHTML = '';
             });
 
@@ -855,6 +860,36 @@
                 logoutBtn.click();
             });
 
+            // ========== POLLING ДЛЯ НОВЫХ СООБЩЕНИЙ ==========
+            function startPolling(chatId) {
+                if (pollingInterval) clearInterval(pollingInterval);
+                currentPollChatId = chatId;
+                pollingInterval = setInterval(() => {
+                    if (!currentUser || !currentPollChatId) return;
+                    let db = loadDB();
+                    // Находим самое новое сообщение в этом чате
+                    let msgs = db.messages
+                        .filter(m => m.chat_id === currentPollChatId)
+                        .sort((a, b) => new Date(b.time) - new Date(a.time));
+                    if (msgs.length === 0) return;
+                    let lastMsg = msgs[0];
+                    // Проверяем, есть ли уже такое сообщение в DOM
+                    if (!document.querySelector(`.message-wrapper[data-id="${lastMsg.id}"]`)) {
+                        // Если нет, добавляем его
+                        lastMsg.isMe = (lastMsg.sender === currentUser.phone);
+                        appendMessage(lastMsg);
+                    }
+                }, 2000); // каждые 2 секунды
+            }
+
+            function stopPolling() {
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    currentPollChatId = null;
+                }
+            }
+
             // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
             function initMode(mode) {
                 currentMode = mode;
@@ -865,6 +900,7 @@
                 profileView.style.display = 'none';
                 settingsView.style.display = 'none';
                 channelActions.style.display = 'none';
+                stopPolling(); // останавливаем polling при смене режима
 
                 if (mode === 'chats') {
                     chatsModeBtn.classList.add('active');
@@ -983,6 +1019,9 @@
                 chatInput.style.display = 'flex';
                 messageInput.disabled = false;
                 sendButton.disabled = false;
+
+                // Запускаем polling для этого чата
+                startPolling(getChatId(id));
             }
 
             // ========== СООБЩЕНИЯ ==========
@@ -1364,6 +1403,9 @@
                 } else {
                     chatInput.style.display = 'none';
                 }
+
+                // Запускаем polling для канала
+                startPolling(chId);
             }
 
             // Сохранение настроек канала, удаление и т.д. (опущено для краткости, но в полной версии всё есть)
@@ -1702,6 +1744,7 @@
                 messagesContainer.innerHTML = '';
                 chatInput.style.display = 'none';
                 typingIndicator.textContent = '';
+                stopPolling(); // останавливаем polling при очистке
             }
 
             function updateStats() {
