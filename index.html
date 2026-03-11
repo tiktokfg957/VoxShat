@@ -9,7 +9,7 @@
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
     <style>
-        /* --- Все стили из предыдущей версии (без изменений) --- */
+        /* --- Все стили (без изменений) --- */
         *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;}
         body{height:100vh;display:flex;justify-content:center;align-items:center;background:#0e1621;transition:background 0.3s;}
         body.dark{background:#0e1621;}
@@ -306,11 +306,12 @@
     <div class="modal" id="registerModal">
         <div class="modal-content">
             <h3>Регистрация</h3>
-            <p>Номер не найден. Придумайте пароль (мин.6 символов, буквы+цифры).</p>
-            <input type="text" id="registerUsername" placeholder="@юзернейм" value="">
-            <input type="password" id="registerPassword" placeholder="Пароль">
+            <p>Номер не найден. Придумайте пароль и укажите @юзернейм.</p>
+            <input type="text" id="registerUsername" placeholder="@юзернейм (обязательно)" value="">
+            <input type="password" id="registerPassword" placeholder="Пароль (мин. 6 символов, буквы+цифры)">
             <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль">
             <div><button id="confirmRegister" disabled>Зарегистрироваться</button><button id="cancelRegister">Отмена</button></div>
+            <div style="color:#ffaa00; font-size:12px; margin-top:5px;" id="registerError"></div>
         </div>
     </div>
 
@@ -330,7 +331,7 @@
             // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
             let currentUser = null;
             let currentUserPhone = null;
-            let currentContactId = ''; // ID текущего чата (номер телефона или ID канала)
+            let currentContactId = '';
             let currentMode = 'chats';
             let activeTimers = {};
             let resetCode = null;
@@ -340,7 +341,7 @@
             let hasMoreMessages = true;
             const messagesLimit = 30;
             let messagesOffset = 0;
-            let friendsCache = new Map(); // для быстрого доступа к данным друзей
+            let friendsCache = new Map();
 
             // ========== РАБОТА С LOCALSTORAGE ==========
             function loadDB() {
@@ -444,6 +445,7 @@
             const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
             const confirmRegister = document.getElementById('confirmRegister');
             const cancelRegister = document.getElementById('cancelRegister');
+            const registerError = document.getElementById('registerError');
             const resetModal = document.getElementById('resetModal');
             const resetPhone = document.getElementById('resetPhone');
             const resetCodeInput = document.getElementById('resetCode');
@@ -494,7 +496,6 @@
             const reactionOptions = document.querySelectorAll('.reaction-option');
             let currentReactionMsg = null;
 
-            // Страны
             const countries = [
                 { name: 'Россия', code: '+7', flag: '🇷🇺' },
                 { name: 'Беларусь', code: '+375', flag: '🇧🇾' },
@@ -534,7 +535,6 @@
             closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
             populateCountryList();
 
-            // Автоопределение страны
             fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
                 .then(res => res.json())
                 .then(data => {
@@ -548,7 +548,6 @@
                 })
                 .catch(() => updateCountryButton());
 
-            // Эмодзи-пикер
             const emojis = ['😊','😂','❤️','👍','🔥','😢','🎉','😍','🤔','👌','🙏','💯','⭐','🍕','⚽','🏀','🎵','📚','✈️','🏠'];
             emojis.forEach(e => {
                 let s = document.createElement('span');
@@ -557,7 +556,6 @@
                 emojiPicker.appendChild(s);
             });
 
-            // Стиль
             function applyStyle(style) {
                 const body = document.body;
                 body.classList.remove('classic-style', 'vox-style');
@@ -639,17 +637,34 @@
                 } else {
                     // Регистрация
                     registerModal.style.display = 'flex';
-                    const validateRegPassword = () => {
+                    registerUsername.value = '';
+                    registerPassword.value = '';
+                    registerPasswordConfirm.value = '';
+                    registerError.textContent = '';
+                    const validateRegForm = () => {
+                        let username = registerUsername.value.trim();
                         let p1 = registerPassword.value;
                         let p2 = registerPasswordConfirm.value;
-                        confirmRegister.disabled = !(p1.length >= 6 && /[a-zA-Z]/.test(p1) && /[0-9]/.test(p1) && p1 === p2);
+                        let usernameValid = username.length >= 3;
+                        let passwordValid = p1.length >= 6 && /[a-zA-Z]/.test(p1) && /[0-9]/.test(p1) && p1 === p2;
+                        confirmRegister.disabled = !(usernameValid && passwordValid);
+                        if (!usernameValid && username.length > 0) {
+                            registerError.textContent = 'Юзернейм должен быть не менее 3 символов';
+                        } else if (p1 !== p2 && p2.length > 0) {
+                            registerError.textContent = 'Пароли не совпадают';
+                        } else if (!passwordValid && p1.length > 0) {
+                            registerError.textContent = 'Пароль: минимум 6 символов, буквы и цифры';
+                        } else {
+                            registerError.textContent = '';
+                        }
                     };
-                    registerPassword.addEventListener('input', validateRegPassword);
-                    registerPasswordConfirm.addEventListener('input', validateRegPassword);
+                    registerUsername.addEventListener('input', validateRegForm);
+                    registerPassword.addEventListener('input', validateRegForm);
+                    registerPasswordConfirm.addEventListener('input', validateRegForm);
                     confirmRegister.onclick = () => {
-                        let p1 = registerPassword.value;
                         let username = registerUsername.value.trim().toLowerCase();
-                        if (username && findUserByUsername(username)) {
+                        let p1 = registerPassword.value;
+                        if (findUserByUsername(username)) {
                             alert('Этот @юзернейм уже занят');
                             return;
                         }
@@ -657,7 +672,7 @@
                         const newUser = {
                             phone: phone,
                             password: hashed,
-                            username: username || '',
+                            username: username,
                             name: '',
                             avatar: null,
                             badges: { blue: false, red: false },
@@ -716,7 +731,7 @@
                 document.getElementById('debugInfo').innerHTML = '';
             });
 
-            // ========== ЗАБЫЛИ ПАРОЛЬ (УПРОЩЁННО) ==========
+            // ========== ЗАБЫЛИ ПАРОЛЬ ==========
             forgotPasswordLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 resetModal.style.display = 'flex';
@@ -823,11 +838,8 @@
             deleteAccountBtn.addEventListener('click', () => {
                 if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
                 let db = loadDB();
-                // Удаляем все сообщения, где пользователь отправитель
                 db.messages = db.messages.filter(m => m.sender !== currentUser.phone);
-                // Удаляем каналы, созданные пользователем
                 db.channels = db.channels.filter(c => c.createdBy !== currentUser.phone);
-                // Удаляем пользователя из списков друзей других пользователей
                 db.users.forEach(u => {
                     if (u.friends) {
                         u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
@@ -835,7 +847,6 @@
                         u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
                     }
                 });
-                // Удаляем самого пользователя
                 db.users = db.users.filter(u => u.phone !== currentUser.phone);
                 saveDB(db);
                 alert('Аккаунт удалён. До свидания!');
@@ -980,7 +991,7 @@
                     if (!currentUser) return '';
                     return `private_${[currentUser.phone, contactId].sort().join('_')}`;
                 }
-                return contactId; // канал
+                return contactId;
             }
 
             function loadMessages(chatId, loadMore = false) {
@@ -1650,10 +1661,12 @@
                 ensureFriends(currentUser);
                 let username = friendUsername.value.trim();
                 if (username.startsWith('@')) username = username.slice(1);
-                if (!username) return;
-                let searchUsername = username.toLowerCase();
+                if (!username) {
+                    friendSearchResult.innerHTML = '<p style="color:#ff9800;">Введите юзернейм</p>';
+                    return;
+                }
                 let db = loadDB();
-                let foundUser = db.users.find(u => u.username && u.username.toLowerCase() === searchUsername);
+                let foundUser = db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
 
                 friendSearchResult.innerHTML = '';
                 if (!foundUser) {
