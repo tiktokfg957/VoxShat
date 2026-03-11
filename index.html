@@ -364,7 +364,7 @@
             let hasMoreMessages = true;
             const messagesLimit = 30;
             let messagesOffset = 0;
-            let friendsCache = new Map(); // для быстрого доступа к данным друзей
+            let friendsCache = new Map();
 
             // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
             function validatePhone(p) {
@@ -740,9 +740,9 @@
                 passwordInput.value = '';
                 loginBtn.disabled = true;
                 loginError.textContent = '';
-                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
-                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
-                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+                if (unsubscribeMessages && unsubscribeMessages.unsubscribe) unsubscribeMessages.unsubscribe();
+                if (unsubscribeTyping && unsubscribeTyping.unsubscribe) unsubscribeTyping.unsubscribe();
+                if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) unsubscribeMessageUpdates.unsubscribe();
                 currentUser = null;
                 currentUserPhone = null;
                 document.getElementById('debugInfo').innerHTML = '';
@@ -856,7 +856,6 @@
                 if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
                 await supabaseClient.from('messages').delete().eq('sender', currentUser.phone);
                 await supabaseClient.from('channels').delete().eq('createdBy', currentUser.phone);
-                // Обновляем друзей у других пользователей (упрощённо)
                 const { data: allUsers } = await supabaseClient.from('users').select('phone, friends');
                 for (let u of allUsers) {
                     if (u.friends) {
@@ -949,7 +948,6 @@
                         contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
                         return;
                     }
-                    // Загружаем всех друзей одним запросом
                     const { data: friendsData } = await supabaseClient
                         .from('users')
                         .select('*')
@@ -989,9 +987,9 @@
             }
 
             function switchContact(id) {
-                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
-                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
-                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+                if (unsubscribeMessages && unsubscribeMessages.unsubscribe) unsubscribeMessages.unsubscribe();
+                if (unsubscribeTyping && unsubscribeTyping.unsubscribe) unsubscribeTyping.unsubscribe();
+                if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) unsubscribeMessageUpdates.unsubscribe();
 
                 currentContactId = id;
                 renderContacts();
@@ -1014,7 +1012,6 @@
                     }
                     chatHeaderSubtitle.textContent = status;
                 } else {
-                    // Загружаем данные пользователя
                     (async () => {
                         const { data } = await supabaseClient
                             .from('users')
@@ -1052,7 +1049,7 @@
             function subscribeToTyping(contactId) {
                 let chatId = getChatId(contactId);
                 if (!chatId) return;
-                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
+                if (unsubscribeTyping && unsubscribeTyping.unsubscribe) unsubscribeTyping.unsubscribe();
                 unsubscribeTyping = supabaseClient
                     .channel(`typing-${chatId}`)
                     .on(
@@ -1093,7 +1090,7 @@
                     if (!currentUser) return '';
                     return `private_${[currentUser.phone, contactId].sort().join('_')}`;
                 }
-                return contactId; // канал
+                return contactId;
             }
 
             async function loadMessages(chatId, loadMore = false) {
@@ -1146,10 +1143,9 @@
                 console.log('📡 Подписка на чат/канал:', chatId);
                 loadMessages(chatId, false);
 
-                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
-                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+                if (unsubscribeMessages && unsubscribeMessages.unsubscribe) unsubscribeMessages.unsubscribe();
+                if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) unsubscribeMessageUpdates.unsubscribe();
 
-                // Подписка на новые сообщения
                 unsubscribeMessages = supabaseClient
                     .channel(`messages-${chatId}`)
                     .on(
@@ -1169,7 +1165,6 @@
                     )
                     .subscribe();
 
-                // Подписка на обновления сообщений (реакции, редактирование)
                 unsubscribeMessageUpdates = supabaseClient
                     .channel(`messages-updates-${chatId}`)
                     .on(
@@ -1509,9 +1504,9 @@
             });
 
             async function switchChannelView(chId) {
-                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
-                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
-                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+                if (unsubscribeMessages && unsubscribeMessages.unsubscribe) unsubscribeMessages.unsubscribe();
+                if (unsubscribeTyping && unsubscribeTyping.unsubscribe) unsubscribeTyping.unsubscribe();
+                if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) unsubscribeMessageUpdates.unsubscribe();
 
                 currentContactId = String(chId);
                 messagesOffset = 0;
