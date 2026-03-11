@@ -2,161 +2,70 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>VoxChat — онлайн версия</title>
-    <!-- CryptoJS для хеширования (оставлен, но в новой версии можно убрать, если перейдёте на Supabase Auth) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <!-- Supabase JS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxShat — свободный мессенджер</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Подключаем Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Стили -->
-    <link rel="stylesheet" href="css/styles.css">
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
 </head>
-<body class="dark classic-style">
-    <!-- Экран входа -->
-    <div class="login-screen" id="loginScreen">
-        <h2>
-            Вход в VoxChat
-            <span class="settings-icon" id="openSettingsBtn">⚙️</span>
-        </h2>
-        <div class="region-selector">
-            <span>Ваш регион:</span>
-            <button id="selectCountryBtn">🌍 Определение... ▼</button>
+<body>
+    <div id="app">
+        <!-- Экран входа/регистрации -->
+        <div id="auth-screen" class="screen active">
+            <div class="auth-container">
+                <h1 class="logo">VoxShat</h1>
+                <p class="tagline">Говори свободно</p>
+                <input type="text" id="phone-input" placeholder="Номер телефона, например +79123456789">
+                <input type="text" id="username-input" placeholder="Желаемый username (только при регистрации)">
+                <input type="password" id="password-input" placeholder="Пароль">
+                <div class="auth-buttons">
+                    <button id="login-btn">Войти</button>
+                    <button id="register-btn">Зарегистрироваться</button>
+                </div>
+                <div id="auth-error" class="error-message"></div>
+            </div>
         </div>
-        <p style="color:#8e9aa6;">Введите номер и пароль</p>
-        <input type="tel" id="phoneInput" placeholder="+7 999 123-45-67" value="+7">
-        <input type="password" id="passwordInput" placeholder="Пароль">
-        <button id="loginBtn" disabled>Войти</button>
-        <div class="error" id="loginError"></div>
-        <div style="margin-top:5px;font-size:12px;color:#aaa;" id="debugInfo"></div>
-        <div style="margin-top:10px;"><a href="#" id="forgotPasswordLink">Забыли пароль?</a></div>
-    </div>
 
-    <!-- Модальное окно выбора страны -->
-    <div class="modal" id="countryModal">
-        <div class="modal-content">
-            <h3>Выберите страну</h3>
-            <div id="countryList" style="max-height:300px; overflow-y:auto;"></div>
-            <button id="closeCountryModal" style="margin-top:10px; padding:8px; background:#f44336; color:#fff; border:none; border-radius:20px;">Отмена</button>
-        </div>
-    </div>
+        <!-- Основной интерфейс (чаты) -->
+        <div id="main-screen" class="screen">
+            <div id="sidebar">
+                <div class="sidebar-header">
+                    <h2 class="logo-small">VoxShat</h2>
+                    <button id="logout-btn" title="Выйти"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+                <div class="profile-info">
+                    <span class="phone-badge" id="user-phone"></span>
+                    <span class="username-badge" id="user-username"></span>
+                </div>
+                <button id="new-chat-btn" class="new-chat-btn"><i class="fas fa-plus"></i> Новый чат</button>
+                <div id="chats-list" class="chats-list"></div>
+            </div>
 
-    <!-- Основное приложение -->
-    <div class="app" id="app">
-        <div class="sidebar">
-            <div class="header">
-                <div class="header-left">
-                    <span>VoxChat</span>
-                    <span class="header-settings-icon" id="openSettingsAppBtn">⚙️</span>
+            <div id="chat-area">
+                <div id="chat-header" class="chat-header">
+                    <span id="chat-partner"></span>
                 </div>
-                <div class="user-info">
-                    <span class="user-phone" id="userPhoneDisplay"></span>
-                    <span id="premiumBadgeHeader" style="display:none;">⭐</span>
-                    <button class="logout-btn" id="logoutBtn">✕</button>
-                    <button class="theme-toggle" id="themeToggle">🌙</button>
+                <div id="messages-container" class="messages-container"></div>
+                <div id="message-input-area" class="message-input-area">
+                    <input type="text" id="message-input" placeholder="Напишите сообщение..." disabled>
+                    <button id="send-btn" disabled><i class="fas fa-paper-plane"></i></button>
                 </div>
-            </div>
-            <div class="mode-switch">
-                <button class="mode-btn active" id="chatsModeBtn">Чаты</button>
-                <button class="mode-btn" id="channelsModeBtn">Каналы</button>
-                <button class="mode-btn" id="friendsModeBtn">Друзья</button>
-                <button class="mode-btn" id="profileModeBtn">Профиль</button>
-                <button class="mode-btn" id="settingsModeBtn">⚙️</button>
-            </div>
-            <div class="contacts" id="contactsList" style="display:block;"></div>
-            <div class="channels-list" id="channelsList" style="display:none;"></div>
-            <div class="friends-view" id="friendsView" style="display:none;"></div>
-            <div class="profile-view" id="profileView" style="display:none;">
-                <div class="profile-avatar" id="profileAvatar" onclick="document.getElementById('profileAvatarInput').click();">
-                    <span>👤</span>
-                    <input type="file" id="profileAvatarInput" accept="image/*" style="display:none;">
-                </div>
-                <input type="text" class="profile-field" id="profileUsername" placeholder="@юзернейм" value="">
-                <input type="text" class="profile-field" id="profileName" placeholder="Имя" value="">
-                <div id="premiumStatus" style="margin:10px 0;font-size:14px;"></div>
-                <button class="profile-save-btn" id="profileSaveBtn">Сохранить</button>
-                <button class="profile-save-btn" id="showPremiumBtn">Купить Premium</button>
-            </div>
-            <div class="settings-view" id="settingsView" style="display:none;">
-                <div class="setting-item">
-                    <h4>Галочки верификации</h4>
-                    <p>✅ Синяя — для официальных аккаунтов (не продаётся)</p>
-                    <p>✅ Фиолетовая — для каналов с 50k+ подписчиков (автоматически)</p>
-                    <p>✅ Красная — для премиум-пользователей</p>
-                </div>
-                <div class="setting-item">
-                    <h4>Статистика</h4>
-                    <p id="statsSubscribers">Подписчиков ваших каналов: 0</p>
-                </div>
-                <div class="setting-item">
-                    <h4>Управление аккаунтом</h4>
-                    <button id="deleteAccountBtn" class="danger-btn" style="padding:10px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Удалить аккаунт</button>
-                </div>
-            </div>
-            <div class="channel-actions" id="channelActions" style="display:none;">
-                <div class="channel-search">
-                    <input type="text" id="channelSearchInput" placeholder="🔍 Поиск каналов...">
-                </div>
-                <button id="createChannelBtn">➕ Создать канал</button>
             </div>
         </div>
-        <div class="chat">
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <span class="chat-header-title" id="chatHeaderTitle">Выберите чат</span>
-                    <span class="chat-header-subtitle" id="chatHeaderSubtitle"></span>
-                    <span class="typing-indicator" id="typingIndicator"></span>
-                </div>
-                <div class="chat-header-actions" id="chatHeaderActions"></div>
-            </div>
-            <div class="messages" id="messagesContainer"></div>
-            <div class="emoji-picker" id="emojiPicker" style="display:none;"></div>
-            <div class="chat-input" id="chatInput">
-                <button id="emojiButton">😊</button>
-                <button id="attachButton">📎</button>
-                <input type="text" id="messageInput" placeholder="Сообщение...">
-                <button class="mic" id="micButton">🎤</button>
-                <button id="sendButton">➤</button>
-                <input type="file" id="fileInput" accept="image/*" style="display:none;">
-            </div>
-        </div>
-    </div>
 
-    <!-- Модальные окна (полный набор) -->
-    <div class="modal" id="registerModal">
-        <div class="modal-content">
-            <h3>Регистрация</h3>
-            <p>Номер не найден. Придумайте пароль и укажите @юзернейм.</p>
-            <input type="text" id="registerUsername" placeholder="@юзернейм (обязательно)" value="">
-            <input type="password" id="registerPassword" placeholder="Пароль (мин. 6 символов, буквы+цифры)">
-            <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль">
-            <div><button id="confirmRegister" disabled>Зарегистрироваться</button><button id="cancelRegister">Отмена</button></div>
-            <div style="color:#ffaa00; font-size:12px; margin-top:5px;" id="registerError"></div>
-        </div>
-    </div>
-    <div class="modal" id="resetModal"><div class="modal-content"><h3>Сброс пароля</h3><p>Введите номер и код из SMS</p><input type="tel" id="resetPhone" placeholder="+7 999 123-45-67"><input type="text" id="resetCode" placeholder="Код подтверждения"><div><button id="sendResetCodeBtn">Отправить код</button></div><div><button id="verifyResetBtn">Проверить код и сбросить</button></div><div><button id="cancelResetBtn">Отмена</button></div></div></div>
-    <div class="modal" id="newPasswordModal"><div class="modal-content"><h3>Новый пароль</h3><input type="password" id="newPassword" placeholder="Новый пароль"><input type="password" id="newPasswordConfirm" placeholder="Повторите пароль"><div><button id="setNewPasswordBtn">Сохранить</button><button id="cancelNewPasswordBtn">Отмена</button></div></div></div>
-    <div class="modal" id="createChannelModal">
-        <div class="modal-content">
-            <h3>Создать канал</h3>
-            <input type="text" id="channelNameInput" placeholder="Название канала">
-            <input type="text" id="channelUsernameInput" placeholder="@юзернейм канала (для поиска)">
-            <div class="profile-avatar" style="margin:10px auto;" onclick="document.getElementById('channelAvatarInput').click();">
-                <span>📢</span>
-                <input type="file" id="channelAvatarInput" accept="image/*" style="display:none;">
+        <!-- Модальное окно для поиска нового собеседника по username -->
+        <div id="new-chat-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h3>Новый чат</h3>
+                <input type="text" id="search-username" placeholder="Введите username собеседника">
+                <button id="search-user-btn">Найти и начать чат</button>
+                <div id="search-result" class="search-result"></div>
             </div>
-            <div><button class="create-btn" id="confirmCreateChannel">Создать</button><button id="cancelCreateChannel">Отмена</button></div>
         </div>
     </div>
-    <div class="modal" id="channelSettingsModal"><div class="modal-content"><h3>Настройки канала</h3><input type="text" id="channelSettingsName" placeholder="Название канала"><input type="text" id="channelSettingsUsername" placeholder="@юзернейм канала"><div class="profile-avatar" style="margin:10px auto;" onclick="document.getElementById('channelSettingsAvatarInput').click();"><span>📢</span><input type="file" id="channelSettingsAvatarInput" accept="image/*" style="display:none;"></div><button id="saveChannelSettings" class="create-btn">Сохранить</button><button id="deleteChannelBtn" class="danger-btn" style="margin-top:10px;background:#f44336;">Удалить канал</button><button id="closeChannelSettings">Отмена</button></div></div>
-    <div class="modal" id="allChannelsModal"><div class="modal-content" style="width:400px;max-height:80vh;overflow-y:auto;"><h3>Все каналы</h3><input type="text" id="allChannelsSearch" placeholder="Введите название или @юзернейм..."><div id="allChannelsList"></div><button id="closeAllChannelsModal">Назад</button></div></div>
-    <div class="modal" id="premiumModal"><div class="modal-content" style="width:350px;"><h3>Оформить Premium</h3><p style="color:var(--text-secondary); margin-bottom:15px;">Выберите срок подписки</p><button class="premium-option" data-months="1" data-price="100">1 месяц — 100₽</button><button class="premium-option" data-months="6" data-price="550">6 месяцев — 550₽</button><button class="premium-option" data-months="12" data-price="1000">12 месяцев — 1000₽</button><div style="margin-top:15px;"><button id="closePremiumModal">Закрыть</button></div></div></div>
-    <div class="modal" id="addFriendModal"><div class="modal-content"><h3>➕ Добавить друга</h3><input type="text" id="friendUsername" placeholder="Введите @юзернейм"><div><button id="searchFriendBtn">Найти</button><button id="closeAddFriendModal">Отмена</button></div><div id="friendSearchResult" style="margin-top:10px;"></div></div></div>
-    <div class="modal" id="editMessageModal"><div class="modal-content"><h3>✏️ Редактировать сообщение</h3><textarea id="editMessageText" rows="3" style="width:100%;padding:10px;border-radius:12px;background:#242f3d;color:#fff;border:none;"></textarea><div><button id="saveEditBtn" class="create-btn">Сохранить</button><button id="cancelEditBtn">Отмена</button></div></div></div>
-    <div class="modal" id="styleModal"><div class="modal-content"><h3>Выберите стиль оформления</h3><button id="classicStyleBtn" style="padding:10px;margin:5px;background:#2b5278;color:#fff;border:none;border-radius:20px;width:100%;">Классический (Telegram)</button><button id="voxStyleBtn" style="padding:10px;margin:5px;background:linear-gradient(135deg,#ee7752,#e73c7e);color:#fff;border:none;border-radius:20px;width:100%;">Градиент (VoxShat)</button><button id="closeStyleModal" style="padding:10px;margin:5px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Закрыть</button></div></div>
-
-    <!-- Подключаем единственный JS-файл (всё приложение в одном модуле) -->
-    <script src="js/app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
