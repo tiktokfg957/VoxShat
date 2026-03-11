@@ -1223,7 +1223,7 @@ if (sendButton) {
     };
 }
 
-const messageInput = document.getElementById('messageInput');
+// Обработчик нажатия Enter (используем уже объявленный messageInput)
 if (messageInput) {
     messageInput.onkeypress = e => {
         if (e.key === 'Enter') {
