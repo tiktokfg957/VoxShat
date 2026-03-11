@@ -1,4 +1,15 @@
-// Настройки профиля, премиум, удаление аккаунта, тема
+// settings.js - настройки профиля, премиум, удаление аккаунта, тема
+
+function applyStyle(style) {
+    const body = document.body;
+    body.classList.remove('classic-style', 'vox-style');
+    if (style === 'classic') {
+        body.classList.add('classic-style');
+    } else {
+        body.classList.add('vox-style');
+    }
+    localStorage.setItem('voxchat_style', style);
+}
 
 function loadProfileToForm() {
     app.elements.profileUsername.value = app.currentUser.username || '';
@@ -81,21 +92,7 @@ function initSettings() {
         app.elements.logoutBtn.click();
     });
 
-    // Тема
-    app.elements.themeToggle.addEventListener('click', () => {
-        let b = document.body;
-        b.classList.toggle('light');
-        b.classList.toggle('dark');
-        app.elements.themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
-    });
-
-    // Стиль (классический/градиент)
-    app.elements.openSettingsBtn.addEventListener('click', () => {
-        app.elements.styleModal.style.display = 'flex';
-    });
-    app.elements.openSettingsAppBtn.addEventListener('click', () => {
-        app.elements.styleModal.style.display = 'flex';
-    });
+    // Обработчики для стилей
     app.elements.classicStyleBtn.addEventListener('click', () => {
         applyStyle('classic');
         app.elements.styleModal.style.display = 'none';
@@ -107,10 +104,15 @@ function initSettings() {
     app.elements.closeStyleModal.addEventListener('click', () => {
         app.elements.styleModal.style.display = 'none';
     });
-
-    // Страны (уже были в основном коде, но можно оставить здесь)
-    // ... код для стран и эмодзи-пикера можно перенести сюда или оставить в main
+    app.elements.openSettingsBtn.addEventListener('click', () => {
+        app.elements.styleModal.style.display = 'flex';
+    });
+    app.elements.openSettingsAppBtn.addEventListener('click', () => {
+        app.elements.styleModal.style.display = 'flex';
+    });
 }
 
+// Экспорт
+window.applyStyle = applyStyle;
 window.loadProfileToForm = loadProfileToForm;
 window.initSettings = initSettings;
