@@ -345,7 +345,8 @@
             // ========== НАСТРОЙКИ SUPABASE ==========
             const supabaseUrl = 'https://yczrkdbyssogvqmwylow.supabase.co';
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljenJrZGJ5c3NvZ3ZxbXd5bG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODM3MjcsImV4cCI6MjA4ODU1OTcyN30.hW5tWQA6qS8pKYhR_vUJ5EmWy414MjhTH3ktHEikMpk';
-            const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+            const { createClient } = supabase;
+            const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
             // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
             let currentUser = null;
@@ -584,7 +585,7 @@
 
             // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ (Supabase) ==========
             async function findUserByPhone(phone) {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('phone', phone)
@@ -593,7 +594,7 @@
                 return data;
             }
             async function findUserByUsername(username) {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .ilike('username', username)
@@ -602,13 +603,13 @@
                 return data;
             }
             async function saveUser(user) {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('users')
                     .upsert(user, { onConflict: 'phone' });
                 if (error) console.error('Ошибка сохранения пользователя:', error);
             }
             async function deleteUser(phone) {
-                await supabase.from('users').delete().eq('phone', phone);
+                await supabaseClient.from('users').delete().eq('phone', phone);
             }
 
             // ========== ВХОД / РЕГИСТРАЦИЯ ==========
@@ -853,10 +854,10 @@
             // ========== УДАЛЕНИЕ АККАУНТА ==========
             deleteAccountBtn.addEventListener('click', async () => {
                 if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
-                await supabase.from('messages').delete().eq('sender', currentUser.phone);
-                await supabase.from('channels').delete().eq('createdBy', currentUser.phone);
+                await supabaseClient.from('messages').delete().eq('sender', currentUser.phone);
+                await supabaseClient.from('channels').delete().eq('createdBy', currentUser.phone);
                 // Обновляем друзей у других пользователей (упрощённо)
-                const { data: allUsers } = await supabase.from('users').select('phone, friends');
+                const { data: allUsers } = await supabaseClient.from('users').select('phone, friends');
                 for (let u of allUsers) {
                     if (u.friends) {
                         let changed = false;
@@ -873,11 +874,11 @@
                             changed = true;
                         }
                         if (changed) {
-                            await supabase.from('users').update({ friends: u.friends }).eq('phone', u.phone);
+                            await supabaseClient.from('users').update({ friends: u.friends }).eq('phone', u.phone);
                         }
                     }
                 }
-                await supabase.from('users').delete().eq('phone', currentUser.phone);
+                await supabaseClient.from('users').delete().eq('phone', currentUser.phone);
                 alert('Аккаунт удалён. До свидания!');
                 logoutBtn.click();
             });
@@ -949,7 +950,7 @@
                         return;
                     }
                     // Загружаем всех друзей одним запросом
-                    const { data: friendsData } = await supabase
+                    const { data: friendsData } = await supabaseClient
                         .from('users')
                         .select('*')
                         .in('phone', friendPhones);
@@ -1015,7 +1016,7 @@
                 } else {
                     // Загружаем данные пользователя
                     (async () => {
-                        const { data } = await supabase
+                        const { data } = await supabaseClient
                             .from('users')
                             .select('name, username, badges, last_seen')
                             .eq('phone', id)
@@ -1052,7 +1053,7 @@
                 let chatId = getChatId(contactId);
                 if (!chatId) return;
                 if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
-                unsubscribeTyping = supabase
+                unsubscribeTyping = supabaseClient
                     .channel(`typing-${chatId}`)
                     .on(
                         'broadcast',
@@ -1073,7 +1074,7 @@
             function sendTyping() {
                 if (!currentUser || !currentContactId) return;
                 let chatId = getChatId(currentContactId);
-                supabase.channel(`typing-${chatId}`).send({
+                supabaseClient.channel(`typing-${chatId}`).send({
                     type: 'broadcast',
                     event: 'typing',
                     payload: { sender: currentUser.phone, chatId: chatId }
@@ -1108,7 +1109,7 @@
                     }
                 }
                 try {
-                    let query = supabase
+                    let query = supabaseClient
                         .from('messages')
                         .select('*')
                         .eq('chat_id', chatId)
@@ -1149,7 +1150,7 @@
                 if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
 
                 // Подписка на новые сообщения
-                unsubscribeMessages = supabase
+                unsubscribeMessages = supabaseClient
                     .channel(`messages-${chatId}`)
                     .on(
                         'postgres_changes',
@@ -1169,7 +1170,7 @@
                     .subscribe();
 
                 // Подписка на обновления сообщений (реакции, редактирование)
-                unsubscribeMessageUpdates = supabase
+                unsubscribeMessageUpdates = supabaseClient
                     .channel(`messages-updates-${chatId}`)
                     .on(
                         'postgres_changes',
@@ -1244,7 +1245,7 @@
                     replyDiv.textContent = '↩️ Загрузка...';
                     w.appendChild(replyDiv);
 
-                    supabase
+                    supabaseClient
                         .from('messages')
                         .select('text, image, sender')
                         .eq('id', msg.reply_to)
@@ -1324,7 +1325,7 @@
                     replyDiv.textContent = '↩️ Загрузка...';
                     w.appendChild(replyDiv);
 
-                    supabase
+                    supabaseClient
                         .from('messages')
                         .select('text, image, sender')
                         .eq('id', msg.reply_to)
@@ -1402,7 +1403,7 @@
                     let reactions = msg.reactions || {};
                     reactions[reaction] = (reactions[reaction] || 0) + 1;
                     try {
-                        await supabase
+                        await supabaseClient
                             .from('messages')
                             .update({ reactions: reactions })
                             .eq('id', msg.id);
@@ -1437,7 +1438,7 @@
                 }
                 console.log('📤 Отправка в chatId:', chatId, 'объект:', msgObj);
                 try {
-                    await supabase
+                    await supabaseClient
                         .from('messages')
                         .insert([msgObj]);
                 } catch (e) {
@@ -1467,7 +1468,7 @@
 
             // ========== КАНАЛЫ ==========
             async function renderChannelsList(searchTerm = '') {
-                let { data: channels, error } = await supabase
+                let { data: channels, error } = await supabaseClient
                     .from('channels')
                     .select('*');
                 if (error) {
@@ -1516,7 +1517,7 @@
                 messagesOffset = 0;
                 hasMoreMessages = true;
                 renderChannelsList(channelSearchInput.value);
-                let { data: ch, error } = await supabase
+                let { data: ch, error } = await supabaseClient
                     .from('channels')
                     .select('*')
                     .eq('id', chId)
@@ -1535,7 +1536,7 @@
                     btn.onclick = async () => {
                         let idx = ch.subscribers.indexOf(currentUser.phone);
                         if (idx !== -1) ch.subscribers.splice(idx, 1);
-                        await supabase
+                        await supabaseClient
                             .from('channels')
                             .update({ subscribers: ch.subscribers })
                             .eq('id', ch.id);
@@ -1588,7 +1589,7 @@
                 updates.username = username || null;
                 if (avatar) updates.avatar = avatar;
 
-                let { error } = await supabase
+                let { error } = await supabaseClient
                     .from('channels')
                     .update(updates)
                     .eq('id', chId);
@@ -1607,7 +1608,7 @@
                 let chId = window.currentChannelForSettings;
                 if (!chId) return;
                 if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
-                await supabase
+                await supabaseClient
                     .from('channels')
                     .delete()
                     .eq('id', chId);
@@ -1630,7 +1631,7 @@
                 if (!name) return;
 
                 if (username) {
-                    let { data: existing } = await supabase
+                    let { data: existing } = await supabaseClient
                         .from('channels')
                         .select('id')
                         .eq('username', username)
@@ -1662,7 +1663,7 @@
                     subscribers: [currentUser.phone],
                     badges: {}
                 };
-                let { data, error } = await supabase
+                let { data, error } = await supabaseClient
                     .from('channels')
                     .insert([newCh])
                     .select()
@@ -1703,7 +1704,7 @@
             }
 
             allChannelsBtn.addEventListener('click', async () => {
-                let { data: allChannels } = await supabase
+                let { data: allChannels } = await supabaseClient
                     .from('channels')
                     .select('*');
                 allChannelsList.innerHTML = '';
@@ -1722,7 +1723,7 @@
                         if (!isSub) {
                             if (!ch.subscribers) ch.subscribers = [];
                             ch.subscribers.push(currentUser.phone);
-                            await supabase
+                            await supabaseClient
                                 .from('channels')
                                 .update({ subscribers: ch.subscribers })
                                 .eq('id', ch.id);
@@ -1770,7 +1771,7 @@
                     friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
                 } else {
                     const friendPhones = currentUser.friends.list;
-                    let { data: friendsData } = await supabase
+                    let { data: friendsData } = await supabaseClient
                         .from('users')
                         .select('*')
                         .in('phone', friendPhones);
@@ -1818,13 +1819,13 @@
                 if (currentUser.friends.incoming.length === 0) {
                     incomingSection.innerHTML += '<p style="color:#8e9aa6;">Нет входящих заявок</p>';
                 } else {
-                    currentUser.friends.incoming.forEach(async (phone) => {
-                        let { data: user } = await supabase
+                    for (let phone of currentUser.friends.incoming) {
+                        let { data: user } = await supabaseClient
                             .from('users')
                             .select('*')
                             .eq('phone', phone)
                             .single();
-                        if (!user) return;
+                        if (!user) continue;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
                         div.innerHTML = `
@@ -1847,7 +1848,7 @@
                             rejectFriendRequest(phone);
                         };
                         incomingSection.appendChild(div);
-                    });
+                    }
                 }
                 friendsView.appendChild(incomingSection);
 
@@ -1858,13 +1859,13 @@
                 if (currentUser.friends.outgoing.length === 0) {
                     outgoingSection.innerHTML += '<p style="color:#8e9aa6;">Нет исходящих заявок</p>';
                 } else {
-                    currentUser.friends.outgoing.forEach(async (phone) => {
-                        let { data: user } = await supabase
+                    for (let phone of currentUser.friends.outgoing) {
+                        let { data: user } = await supabaseClient
                             .from('users')
                             .select('*')
                             .eq('phone', phone)
                             .single();
-                        if (!user) return;
+                        if (!user) continue;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
                         div.innerHTML = `
@@ -1880,7 +1881,7 @@
                             cancelFriendRequest(phone);
                         };
                         outgoingSection.appendChild(div);
-                    });
+                    }
                 }
                 friendsView.appendChild(outgoingSection);
             }
@@ -1961,7 +1962,7 @@
                 if (!currentUser.friends.outgoing.includes(targetPhone)) {
                     currentUser.friends.outgoing.push(targetPhone);
                 }
-                let { data: targetUser } = await supabase
+                let { data: targetUser } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('phone', targetPhone)
@@ -1971,9 +1972,9 @@
                     if (!targetUser.friends.incoming.includes(currentUser.phone)) {
                         targetUser.friends.incoming.push(currentUser.phone);
                     }
-                    await supabase.from('users').update({ friends: targetUser.friends }).eq('phone', targetPhone);
+                    await supabaseClient.from('users').update({ friends: targetUser.friends }).eq('phone', targetPhone);
                 }
-                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
+                await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
                 alert('Заявка отправлена');
             }
@@ -1982,7 +1983,7 @@
                 ensureFriends(currentUser);
                 currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
                 if (!currentUser.friends.list.includes(phone)) currentUser.friends.list.push(phone);
-                let { data: other } = await supabase
+                let { data: other } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('phone', phone)
@@ -1991,9 +1992,9 @@
                     ensureFriends(other);
                     other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
                     if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
-                    await supabase.from('users').update({ friends: other.friends }).eq('phone', phone);
+                    await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
                 }
-                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
+                await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
                 renderContacts();
                 alert('Заявка принята');
@@ -2002,7 +2003,7 @@
             async function rejectFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-                let { data: other } = await supabase
+                let { data: other } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('phone', phone)
@@ -2010,16 +2011,16 @@
                 if (other) {
                     ensureFriends(other);
                     other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-                    await supabase.from('users').update({ friends: other.friends }).eq('phone', phone);
+                    await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
                 }
-                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
+                await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
             }
 
             async function cancelFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.outgoing = currentUser.friends.outgoing.filter(p => p !== phone);
-                let { data: other } = await supabase
+                let { data: other } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('phone', phone)
@@ -2027,9 +2028,9 @@
                 if (other) {
                     ensureFriends(other);
                     other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
-                    await supabase.from('users').update({ friends: other.friends }).eq('phone', phone);
+                    await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
                 }
-                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
+                await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
             }
 
@@ -2045,7 +2046,7 @@
                     let { msg } = editMessageId;
                     let newText = editMessageText.value.trim();
                     if (newText) {
-                        await supabase
+                        await supabaseClient
                             .from('messages')
                             .update({ text: newText })
                             .eq('id', msg.id);
