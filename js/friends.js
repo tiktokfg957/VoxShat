@@ -1,4 +1,4 @@
-// Работа с друзьями
+// friends.js - работа с друзьями
 
 function renderFriendsView() {
     ensureFriends(app.currentUser);
@@ -134,44 +134,6 @@ function renderFriendsView() {
     friendsView.appendChild(outgoingSection);
 }
 
-// Поиск друга
-app.elements.searchFriendBtn.addEventListener('click', () => {
-    ensureFriends(app.currentUser);
-    let username = app.elements.friendUsername.value.trim();
-    if (username.startsWith('@')) username = username.slice(1);
-    if (!username) {
-        app.elements.friendSearchResult.innerHTML = '<p style="color:#ff9800;">Введите юзернейм</p>';
-        return;
-    }
-    let foundUser = findUserByUsername(username);
-
-    app.elements.friendSearchResult.innerHTML = '';
-    if (!foundUser) {
-        app.elements.friendSearchResult.innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
-        return;
-    }
-    if (foundUser.phone === app.currentUser.phone) {
-        app.elements.friendSearchResult.innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
-        return;
-    }
-    if (app.currentUser.friends.list.includes(foundUser.phone)) {
-        app.elements.friendSearchResult.innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
-        return;
-    }
-    if (app.currentUser.friends.outgoing.includes(foundUser.phone)) {
-        app.elements.friendSearchResult.innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
-        return;
-    }
-    if (app.currentUser.friends.incoming.includes(foundUser.phone)) {
-        app.elements.friendSearchResult.innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
-        return;
-    }
-
-    app.elements.addFriendModal.style.display = 'none';
-    app.elements.friendUsername.value = '';
-    showUserProfile(foundUser);
-});
-
 function showUserProfile(user) {
     let modal = document.createElement('div');
     modal.className = 'modal';
@@ -266,20 +228,56 @@ function cancelFriendRequest(phone) {
     renderFriendsView();
 }
 
-app.elements.closeAddFriendModal.addEventListener('click', () => {
-    app.elements.addFriendModal.style.display = 'none';
-    app.elements.friendUsername.value = '';
-    app.elements.friendSearchResult.innerHTML = '';
-});
-
-// Инициализация модуля друзей
+// Инициализация модуля друзей (все обработчики здесь)
 function initFriends() {
-    // Обработчики уже добавлены выше
+    app.elements.searchFriendBtn.addEventListener('click', () => {
+        ensureFriends(app.currentUser);
+        let username = app.elements.friendUsername.value.trim();
+        if (username.startsWith('@')) username = username.slice(1);
+        if (!username) {
+            app.elements.friendSearchResult.innerHTML = '<p style="color:#ff9800;">Введите юзернейм</p>';
+            return;
+        }
+        let foundUser = findUserByUsername(username);
+
+        app.elements.friendSearchResult.innerHTML = '';
+        if (!foundUser) {
+            app.elements.friendSearchResult.innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
+            return;
+        }
+        if (foundUser.phone === app.currentUser.phone) {
+            app.elements.friendSearchResult.innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
+            return;
+        }
+        if (app.currentUser.friends.list.includes(foundUser.phone)) {
+            app.elements.friendSearchResult.innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
+            return;
+        }
+        if (app.currentUser.friends.outgoing.includes(foundUser.phone)) {
+            app.elements.friendSearchResult.innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
+            return;
+        }
+        if (app.currentUser.friends.incoming.includes(foundUser.phone)) {
+            app.elements.friendSearchResult.innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
+            return;
+        }
+
+        app.elements.addFriendModal.style.display = 'none';
+        app.elements.friendUsername.value = '';
+        showUserProfile(foundUser);
+    });
+
+    app.elements.closeAddFriendModal.addEventListener('click', () => {
+        app.elements.addFriendModal.style.display = 'none';
+        app.elements.friendUsername.value = '';
+        app.elements.friendSearchResult.innerHTML = '';
+    });
 }
 
+// Экспорт
 window.renderFriendsView = renderFriendsView;
-window.initFriends = initFriends;
 window.sendFriendRequest = sendFriendRequest;
 window.acceptFriendRequest = acceptFriendRequest;
 window.rejectFriendRequest = rejectFriendRequest;
 window.cancelFriendRequest = cancelFriendRequest;
+window.initFriends = initFriends;
