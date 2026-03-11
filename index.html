@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>VoxChat — модульная версия</title>
-    <!-- CryptoJS для хеширования паролей -->
+    <title>VoxChat — онлайн версия</title>
+    <!-- CryptoJS для хеширования (оставлен, но в новой версии можно убрать, если перейдёте на Supabase Auth) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Стили -->
     <link rel="stylesheet" href="css/styles.css">
     <!-- Favicon -->
@@ -121,7 +123,7 @@
         </div>
     </div>
 
-    <!-- Модальные окна -->
+    <!-- Модальные окна (полный набор) -->
     <div class="modal" id="registerModal">
         <div class="modal-content">
             <h3>Регистрация</h3>
@@ -133,28 +135,8 @@
             <div style="color:#ffaa00; font-size:12px; margin-top:5px;" id="registerError"></div>
         </div>
     </div>
-
-    <div class="modal" id="resetModal">
-        <div class="modal-content">
-            <h3>Сброс пароля</h3>
-            <p>Введите номер и код из SMS</p>
-            <input type="tel" id="resetPhone" placeholder="+7 999 123-45-67">
-            <input type="text" id="resetCode" placeholder="Код подтверждения">
-            <div><button id="sendResetCodeBtn">Отправить код</button></div>
-            <div><button id="verifyResetBtn">Проверить код и сбросить</button></div>
-            <div><button id="cancelResetBtn">Отмена</button></div>
-        </div>
-    </div>
-
-    <div class="modal" id="newPasswordModal">
-        <div class="modal-content">
-            <h3>Новый пароль</h3>
-            <input type="password" id="newPassword" placeholder="Новый пароль">
-            <input type="password" id="newPasswordConfirm" placeholder="Повторите пароль">
-            <div><button id="setNewPasswordBtn">Сохранить</button><button id="cancelNewPasswordBtn">Отмена</button></div>
-        </div>
-    </div>
-
+    <div class="modal" id="resetModal"><div class="modal-content"><h3>Сброс пароля</h3><p>Введите номер и код из SMS</p><input type="tel" id="resetPhone" placeholder="+7 999 123-45-67"><input type="text" id="resetCode" placeholder="Код подтверждения"><div><button id="sendResetCodeBtn">Отправить код</button></div><div><button id="verifyResetBtn">Проверить код и сбросить</button></div><div><button id="cancelResetBtn">Отмена</button></div></div></div>
+    <div class="modal" id="newPasswordModal"><div class="modal-content"><h3>Новый пароль</h3><input type="password" id="newPassword" placeholder="Новый пароль"><input type="password" id="newPasswordConfirm" placeholder="Повторите пароль"><div><button id="setNewPasswordBtn">Сохранить</button><button id="cancelNewPasswordBtn">Отмена</button></div></div></div>
     <div class="modal" id="createChannelModal">
         <div class="modal-content">
             <h3>Создать канал</h3>
@@ -167,78 +149,14 @@
             <div><button class="create-btn" id="confirmCreateChannel">Создать</button><button id="cancelCreateChannel">Отмена</button></div>
         </div>
     </div>
+    <div class="modal" id="channelSettingsModal"><div class="modal-content"><h3>Настройки канала</h3><input type="text" id="channelSettingsName" placeholder="Название канала"><input type="text" id="channelSettingsUsername" placeholder="@юзернейм канала"><div class="profile-avatar" style="margin:10px auto;" onclick="document.getElementById('channelSettingsAvatarInput').click();"><span>📢</span><input type="file" id="channelSettingsAvatarInput" accept="image/*" style="display:none;"></div><button id="saveChannelSettings" class="create-btn">Сохранить</button><button id="deleteChannelBtn" class="danger-btn" style="margin-top:10px;background:#f44336;">Удалить канал</button><button id="closeChannelSettings">Отмена</button></div></div>
+    <div class="modal" id="allChannelsModal"><div class="modal-content" style="width:400px;max-height:80vh;overflow-y:auto;"><h3>Все каналы</h3><input type="text" id="allChannelsSearch" placeholder="Введите название или @юзернейм..."><div id="allChannelsList"></div><button id="closeAllChannelsModal">Назад</button></div></div>
+    <div class="modal" id="premiumModal"><div class="modal-content" style="width:350px;"><h3>Оформить Premium</h3><p style="color:var(--text-secondary); margin-bottom:15px;">Выберите срок подписки</p><button class="premium-option" data-months="1" data-price="100">1 месяц — 100₽</button><button class="premium-option" data-months="6" data-price="550">6 месяцев — 550₽</button><button class="premium-option" data-months="12" data-price="1000">12 месяцев — 1000₽</button><div style="margin-top:15px;"><button id="closePremiumModal">Закрыть</button></div></div></div>
+    <div class="modal" id="addFriendModal"><div class="modal-content"><h3>➕ Добавить друга</h3><input type="text" id="friendUsername" placeholder="Введите @юзернейм"><div><button id="searchFriendBtn">Найти</button><button id="closeAddFriendModal">Отмена</button></div><div id="friendSearchResult" style="margin-top:10px;"></div></div></div>
+    <div class="modal" id="editMessageModal"><div class="modal-content"><h3>✏️ Редактировать сообщение</h3><textarea id="editMessageText" rows="3" style="width:100%;padding:10px;border-radius:12px;background:#242f3d;color:#fff;border:none;"></textarea><div><button id="saveEditBtn" class="create-btn">Сохранить</button><button id="cancelEditBtn">Отмена</button></div></div></div>
+    <div class="modal" id="styleModal"><div class="modal-content"><h3>Выберите стиль оформления</h3><button id="classicStyleBtn" style="padding:10px;margin:5px;background:#2b5278;color:#fff;border:none;border-radius:20px;width:100%;">Классический (Telegram)</button><button id="voxStyleBtn" style="padding:10px;margin:5px;background:linear-gradient(135deg,#ee7752,#e73c7e);color:#fff;border:none;border-radius:20px;width:100%;">Градиент (VoxShat)</button><button id="closeStyleModal" style="padding:10px;margin:5px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Закрыть</button></div></div>
 
-    <div class="modal" id="channelSettingsModal">
-        <div class="modal-content">
-            <h3>Настройки канала</h3>
-            <input type="text" id="channelSettingsName" placeholder="Название канала">
-            <input type="text" id="channelSettingsUsername" placeholder="@юзернейм канала">
-            <div class="profile-avatar" style="margin:10px auto;" onclick="document.getElementById('channelSettingsAvatarInput').click();">
-                <span>📢</span>
-                <input type="file" id="channelSettingsAvatarInput" accept="image/*" style="display:none;">
-            </div>
-            <button id="saveChannelSettings" class="create-btn">Сохранить</button>
-            <button id="deleteChannelBtn" class="danger-btn" style="margin-top:10px;background:#f44336;">Удалить канал</button>
-            <button id="closeChannelSettings">Отмена</button>
-        </div>
-    </div>
-
-    <div class="modal" id="allChannelsModal">
-        <div class="modal-content" style="width:400px;max-height:80vh;overflow-y:auto;">
-            <h3>Все каналы</h3>
-            <input type="text" id="allChannelsSearch" placeholder="Введите название или @юзернейм...">
-            <div id="allChannelsList"></div>
-            <button id="closeAllChannelsModal">Назад</button>
-        </div>
-    </div>
-
-    <div class="modal" id="premiumModal">
-        <div class="modal-content" style="width:350px;">
-            <h3>Оформить Premium</h3>
-            <p style="color:var(--text-secondary); margin-bottom:15px;">Выберите срок подписки</p>
-            <button class="premium-option" data-months="1" data-price="100">1 месяц — 100₽</button>
-            <button class="premium-option" data-months="6" data-price="550">6 месяцев — 550₽</button>
-            <button class="premium-option" data-months="12" data-price="1000">12 месяцев — 1000₽</button>
-            <div style="margin-top:15px;">
-                <button id="closePremiumModal">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="addFriendModal">
-        <div class="modal-content">
-            <h3>➕ Добавить друга</h3>
-            <input type="text" id="friendUsername" placeholder="Введите @юзернейм">
-            <div><button id="searchFriendBtn">Найти</button><button id="closeAddFriendModal">Отмена</button></div>
-            <div id="friendSearchResult" style="margin-top:10px;"></div>
-        </div>
-    </div>
-
-    <div class="modal" id="editMessageModal">
-        <div class="modal-content">
-            <h3>✏️ Редактировать сообщение</h3>
-            <textarea id="editMessageText" rows="3" style="width:100%;padding:10px;border-radius:12px;background:#242f3d;color:#fff;border:none;"></textarea>
-            <div><button id="saveEditBtn" class="create-btn">Сохранить</button><button id="cancelEditBtn">Отмена</button></div>
-        </div>
-    </div>
-
-    <div class="modal" id="styleModal">
-        <div class="modal-content">
-            <h3>Выберите стиль оформления</h3>
-            <button id="classicStyleBtn" style="padding:10px;margin:5px;background:#2b5278;color:#fff;border:none;border-radius:20px;width:100%;">Классический (Telegram)</button>
-            <button id="voxStyleBtn" style="padding:10px;margin:5px;background:linear-gradient(135deg,#ee7752,#e73c7e);color:#fff;border:none;border-radius:20px;width:100%;">Градиент (VoxShat)</button>
-            <button id="closeStyleModal" style="padding:10px;margin:5px;background:#f44336;color:#fff;border:none;border-radius:20px;width:100%;">Закрыть</button>
-        </div>
-    </div>
-
-    <!-- Подключаем модули JavaScript в правильном порядке -->
-    <script src="js/main.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/friends.js"></script>
-    <script src="js/channels.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/ui.js"></script>
+    <!-- Подключаем единственный JS-файл (всё приложение в одном модуле) -->
+    <script src="js/app.js"></script>
 </body>
 </html>
