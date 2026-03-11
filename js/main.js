@@ -34,8 +34,31 @@ window.saveDB = function(db) {
     localStorage.setItem('voxchat_channels', JSON.stringify(db.channels));
 };
 
-// Заполняем элементы DOM после загрузки страницы
+// Функции для работы с пользователями (будут переопределены в auth.js, но здесь нужны для тестового пользователя)
+window.findUserByPhone = function(phone) {
+    let db = loadDB();
+    return db.users.find(u => u.phone === phone);
+};
+
+window.findUserByUsername = function(username) {
+    let db = loadDB();
+    return db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+};
+
+window.saveUser = function(user) {
+    let db = loadDB();
+    let index = db.users.findIndex(u => u.phone === user.phone);
+    if (index !== -1) {
+        db.users[index] = user;
+    } else {
+        db.users.push(user);
+    }
+    saveDB(db);
+};
+
+// Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
+    // Заполняем элементы DOM
     app.elements = {
         loginScreen: document.getElementById('loginScreen'),
         app: document.getElementById('app'),
@@ -144,12 +167,12 @@ document.addEventListener('DOMContentLoaded', function() {
         reactionOptions: document.querySelectorAll('.reaction-option')
     };
 
-    // Инициализация после загрузки DOM
-    initAuth();
-    initFriends();
-    initChannels();
-    initChat();
-    initSettings();
+    // Вызываем инициализацию всех модулей
+    if (typeof initAuth === 'function') initAuth();
+    if (typeof initFriends === 'function') initFriends();
+    if (typeof initChannels === 'function') initChannels();
+    if (typeof initChat === 'function') initChat();
+    if (typeof initSettings === 'function') initSettings();
 
     // Создаём тестового пользователя, если база пуста
     let db = loadDB();
@@ -169,7 +192,8 @@ document.addEventListener('DOMContentLoaded', function() {
         saveDB(db);
     }
 
-    phoneInput.value = '+7';
-    passwordInput.value = '';
-    updateLoginButtonState();
+    // Устанавливаем начальные значения полей входа
+    app.elements.phoneInput.value = '+7';
+    app.elements.passwordInput.value = '';
+    if (typeof updateLoginButtonState === 'function') updateLoginButtonState();
 });
