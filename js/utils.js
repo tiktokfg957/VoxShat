@@ -1,4 +1,4 @@
-// Вспомогательные функции
+// utils.js - вспомогательные функции
 
 function validatePhone(p) {
     let cleaned = p.replace(/[^\d+]/g, '');
@@ -42,7 +42,29 @@ function clearChatArea() {
     app.elements.typingIndicator.textContent = '';
 }
 
-// Экспортируем в глобальную область (чтобы было доступно в других модулях)
+// Функция инициализации голосового ввода
+function initSpeech() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        app.elements.micButton.style.display = 'none';
+        return;
+    }
+    let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec = new SR();
+    rec.lang = 'ru-RU';
+    rec.interimResults = false;
+    app.elements.micButton.addEventListener('click', () => {
+        app.elements.micButton.style.backgroundColor = '#f44336';
+        rec.start();
+    });
+    rec.onresult = e => {
+        app.elements.messageInput.value = e.results[0][0].transcript;
+        app.elements.micButton.style.backgroundColor = '';
+    };
+    rec.onerror = () => app.elements.micButton.style.backgroundColor = '';
+    rec.onend = () => app.elements.micButton.style.backgroundColor = '';
+}
+
+// Экспортируем в глобальную область
 window.validatePhone = validatePhone;
 window.validatePassword = validatePassword;
 window.hashPassword = hashPassword;
@@ -50,3 +72,4 @@ window.isPremium = isPremium;
 window.ensureFriends = ensureFriends;
 window.updatePremiumUI = updatePremiumUI;
 window.clearChatArea = clearChatArea;
+window.initSpeech = initSpeech;  // добавлено
