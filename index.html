@@ -929,7 +929,8 @@
                 contactsListEl.innerHTML = '';
 
                 if (currentUser && currentUser.friends && currentUser.friends.list) {
-                    const friendPhones = currentUser.friends.list;
+                    // Используем Set для удаления дубликатов
+                    const friendPhones = [...new Set(currentUser.friends.list)];
                     if (friendPhones.length === 0) {
                         contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
                         return;
@@ -1680,15 +1681,16 @@
                 if (currentUser.friends.list.length === 0) {
                     friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
                 } else {
-                    const friendPhones = currentUser.friends.list;
+                    // Убираем дубликаты с помощью Set
+                    const uniquePhones = [...new Set(currentUser.friends.list)];
                     let { data: friendsData } = await supabaseClient
                         .from('users')
                         .select('*')
-                        .in('phone', friendPhones);
+                        .in('phone', uniquePhones);
                     if (friendsData) {
                         friendsData.forEach(f => friendsCache.set(f.phone, f));
                     }
-                    friendPhones.forEach(phone => {
+                    uniquePhones.forEach(phone => {
                         let friend = friendsCache.get(phone);
                         if (!friend) return;
                         let div = document.createElement('div');
