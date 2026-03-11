@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof initChannels === 'function') initChannels();
     if (typeof initChat === 'function') initChat();
     if (typeof initSettings === 'function') initSettings();
+    if (typeof initUI === 'function') initUI();
 
     // Создаём тестового пользователя, если база пуста
     let db = loadDB();
@@ -185,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             avatar: null,
             badges: { blue: false, red: false },
             premiumUntil: null,
-            friends: { list: [], incoming: [], outgoing: [] },
+            friends: { list: [], incoming: [], outgoing: [] }, // исправлено
             last_seen: new Date().toISOString()
         };
         db.users.push(testUser);
