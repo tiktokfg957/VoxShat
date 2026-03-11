@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>VoxChat — локальная версия</title>
+    <title>VoxChat — финальная версия</title>
     <!-- CryptoJS для хеширования паролей -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
     <style>
@@ -340,11 +342,19 @@
 
     <script>
         (function() {
+            // ========== НАСТРОЙКИ SUPABASE ==========
+            const supabaseUrl = 'https://yczrkdbyssogvqmwylow.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljenJrZGJ5c3NvZ3ZxbXd5bG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODM3MjcsImV4cCI6MjA4ODU1OTcyN30.hW5tWQA6qS8pKYhR_vUJ5EmWy414MjhTH3ktHEikMpk';
+            const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
             // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
             let currentUser = null;
             let currentUserPhone = null;
             let currentContactId = '';
             let currentMode = 'chats';
+            let unsubscribeMessages = null;
+            let unsubscribeTyping = null;
+            let unsubscribeMessageUpdates = null;
             let activeTimers = {};
             let resetCode = null;
             let editMessageId = null;
@@ -353,21 +363,7 @@
             let hasMoreMessages = true;
             const messagesLimit = 30;
             let messagesOffset = 0;
-            let friendsCache = new Map();
-
-            // ========== РАБОТА С LOCALSTORAGE ==========
-            function loadDB() {
-                return {
-                    users: JSON.parse(localStorage.getItem('voxchat_users')) || [],
-                    messages: JSON.parse(localStorage.getItem('voxchat_messages')) || [],
-                    channels: JSON.parse(localStorage.getItem('voxchat_channels')) || []
-                };
-            }
-            function saveDB(db) {
-                localStorage.setItem('voxchat_users', JSON.stringify(db.users));
-                localStorage.setItem('voxchat_messages', JSON.stringify(db.messages));
-                localStorage.setItem('voxchat_channels', JSON.stringify(db.channels));
-            }
+            let friendsCache = new Map(); // для быстрого доступа к данным друзей
 
             // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
             function validatePhone(p) {
@@ -586,29 +582,33 @@
             voxStyleBtn.onclick = () => { applyStyle('vox'); styleModal.style.display = 'none'; };
             closeStyleModal.onclick = () => styleModal.style.display = 'none';
 
-            // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ ==========
-            function findUserByPhone(phone) {
-                let db = loadDB();
-                return db.users.find(u => u.phone === phone);
+            // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ (Supabase) ==========
+            async function findUserByPhone(phone) {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', phone)
+                    .single();
+                if (error) return null;
+                return data;
             }
-            function findUserByUsername(username) {
-                let db = loadDB();
-                return db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+            async function findUserByUsername(username) {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .ilike('username', username)
+                    .maybeSingle();
+                if (error) return null;
+                return data;
             }
-            function saveUser(user) {
-                let db = loadDB();
-                let index = db.users.findIndex(u => u.phone === user.phone);
-                if (index !== -1) {
-                    db.users[index] = user;
-                } else {
-                    db.users.push(user);
-                }
-                saveDB(db);
+            async function saveUser(user) {
+                const { error } = await supabase
+                    .from('users')
+                    .upsert(user, { onConflict: 'phone' });
+                if (error) console.error('Ошибка сохранения пользователя:', error);
             }
-            function deleteUser(phone) {
-                let db = loadDB();
-                db.users = db.users.filter(u => u.phone !== phone);
-                saveDB(db);
+            async function deleteUser(phone) {
+                await supabase.from('users').delete().eq('phone', phone);
             }
 
             // ========== ВХОД / РЕГИСТРАЦИЯ ==========
@@ -622,18 +622,18 @@
             phoneInput.addEventListener('input', updateLoginButtonState);
             passwordInput.addEventListener('input', updateLoginButtonState);
 
-            loginBtn.addEventListener('click', () => {
+            loginBtn.addEventListener('click', async () => {
                 let phone = phoneInput.value.trim();
                 let pwd = passwordInput.value.trim();
                 if (!validatePhone(phone) || pwd.length < 3) return;
 
-                let user = findUserByPhone(phone);
+                let user = await findUserByPhone(phone);
                 if (user) {
                     let hashed = hashPassword(pwd);
                     if (user.password === pwd || user.password === hashed) {
                         if (user.password === pwd) {
                             user.password = hashed;
-                            saveUser(user);
+                            await saveUser(user);
                         }
                         currentUser = user;
                         loginScreen.classList.add('fade-out');
@@ -673,10 +673,11 @@
                     registerUsername.addEventListener('input', validateRegForm);
                     registerPassword.addEventListener('input', validateRegForm);
                     registerPasswordConfirm.addEventListener('input', validateRegForm);
-                    confirmRegister.onclick = () => {
+                    confirmRegister.onclick = async () => {
                         let username = registerUsername.value.trim().toLowerCase();
                         let p1 = registerPassword.value;
-                        if (findUserByUsername(username)) {
+                        let existing = await findUserByUsername(username);
+                        if (existing) {
                             alert('Этот @юзернейм уже занят');
                             return;
                         }
@@ -692,7 +693,7 @@
                             friends: { list: [], incoming: [], outgoing: [] },
                             last_seen: new Date().toISOString()
                         };
-                        saveUser(newUser);
+                        await saveUser(newUser);
                         currentUser = newUser;
                         registerModal.style.display = 'none';
                         loginScreen.classList.add('fade-out');
@@ -707,7 +708,7 @@
                 }
             });
 
-            function afterLogin(phone) {
+            async function afterLogin(phone) {
                 ensureFriends(currentUser);
                 currentUserPhone = phone;
                 userPhoneDisplay.textContent = phone.length > 10 ? phone.slice(0,10)+'…' : phone;
@@ -738,12 +739,15 @@
                 passwordInput.value = '';
                 loginBtn.disabled = true;
                 loginError.textContent = '';
+                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
+                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
+                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
                 currentUser = null;
                 currentUserPhone = null;
                 document.getElementById('debugInfo').innerHTML = '';
             });
 
-            // ========== ЗАБЫЛИ ПАРОЛЬ ==========
+            // ========== ЗАБЫЛИ ПАРОЛЬ (упрощённо) ==========
             forgotPasswordLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 resetModal.style.display = 'flex';
@@ -770,17 +774,17 @@
                 newPasswordModal.style.display = 'flex';
             });
             cancelResetBtn.addEventListener('click', () => { resetModal.style.display = 'none'; });
-            setNewPasswordBtn.addEventListener('click', () => {
+            setNewPasswordBtn.addEventListener('click', async () => {
                 let p1 = newPassword.value;
                 let p2 = newPasswordConfirm.value;
                 if (p1 !== p2) { alert('Пароли не совпадают'); return; }
                 if (!validatePassword(p1)) { alert('Пароль должен быть минимум 6 символов, содержать буквы и цифры'); return; }
                 let phone = window.resetPhoneForPassword;
-                let user = findUserByPhone(phone);
+                let user = await findUserByPhone(phone);
                 if (user) {
                     let hashed = hashPassword(p1);
                     user.password = hashed;
-                    saveUser(user);
+                    await saveUser(user);
                     alert('Пароль успешно изменён');
                 }
                 newPasswordModal.style.display = 'none';
@@ -801,10 +805,10 @@
                     reader.readAsDataURL(file);
                 }
             };
-            profileSaveBtn.onclick = () => {
+            profileSaveBtn.onclick = async () => {
                 let newUsername = profileUsername.value.trim().toLowerCase();
                 if (newUsername !== currentUser.username) {
-                    let existing = findUserByUsername(newUsername);
+                    let existing = await findUserByUsername(newUsername);
                     if (existing && existing.phone !== currentUser.phone) {
                         alert('Этот @юзернейм уже занят');
                         return;
@@ -812,7 +816,7 @@
                 }
                 currentUser.username = newUsername;
                 currentUser.name = profileName.value.trim();
-                saveUser(currentUser);
+                await saveUser(currentUser);
                 alert('Сохранено');
                 renderContacts();
             };
@@ -830,14 +834,14 @@
             showPremiumBtn.addEventListener('click', () => { premiumModal.style.display = 'flex'; });
             closePremiumModal.addEventListener('click', () => { premiumModal.style.display = 'none'; });
             document.querySelectorAll('.premium-option').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', async function() {
                     let months = parseInt(this.dataset.months);
                     if (confirm(`Оформить Premium на ${months} мес. за ${this.dataset.price}₽?`)) {
                         let until = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
                         currentUser.premiumUntil = until;
                         if (!currentUser.badges) currentUser.badges = {};
                         currentUser.badges.red = true;
-                        saveUser(currentUser);
+                        await saveUser(currentUser);
                         updatePremiumUI();
                         premiumModal.style.display = 'none';
                         alert('Premium активирован!');
@@ -847,20 +851,33 @@
             });
 
             // ========== УДАЛЕНИЕ АККАУНТА ==========
-            deleteAccountBtn.addEventListener('click', () => {
+            deleteAccountBtn.addEventListener('click', async () => {
                 if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
-                let db = loadDB();
-                db.messages = db.messages.filter(m => m.sender !== currentUser.phone);
-                db.channels = db.channels.filter(c => c.createdBy !== currentUser.phone);
-                db.users.forEach(u => {
+                await supabase.from('messages').delete().eq('sender', currentUser.phone);
+                await supabase.from('channels').delete().eq('createdBy', currentUser.phone);
+                // Обновляем друзей у других пользователей (упрощённо)
+                const { data: allUsers } = await supabase.from('users').select('phone, friends');
+                for (let u of allUsers) {
                     if (u.friends) {
-                        u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
-                        u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
-                        u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
+                        let changed = false;
+                        if (u.friends.list.includes(currentUser.phone)) {
+                            u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
+                            changed = true;
+                        }
+                        if (u.friends.incoming.includes(currentUser.phone)) {
+                            u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
+                            changed = true;
+                        }
+                        if (u.friends.outgoing.includes(currentUser.phone)) {
+                            u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
+                            changed = true;
+                        }
+                        if (changed) {
+                            await supabase.from('users').update({ friends: u.friends }).eq('phone', u.phone);
+                        }
                     }
-                });
-                db.users = db.users.filter(u => u.phone !== currentUser.phone);
-                saveDB(db);
+                }
+                await supabase.from('users').delete().eq('phone', currentUser.phone);
                 alert('Аккаунт удалён. До свидания!');
                 logoutBtn.click();
             });
@@ -931,9 +948,14 @@
                         contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
                         return;
                     }
-                    let db = loadDB();
-                    let friendsData = db.users.filter(u => friendPhones.includes(u.phone));
-                    friendsData.forEach(f => friendsCache.set(f.phone, f));
+                    // Загружаем всех друзей одним запросом
+                    const { data: friendsData } = await supabase
+                        .from('users')
+                        .select('*')
+                        .in('phone', friendPhones);
+                    if (friendsData) {
+                        friendsData.forEach(f => friendsCache.set(f.phone, f));
+                    }
 
                     for (let friendPhone of friendPhones) {
                         let friend = friendsCache.get(friendPhone);
@@ -966,12 +988,16 @@
             }
 
             function switchContact(id) {
+                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
+                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
+                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+
                 currentContactId = id;
                 renderContacts();
                 messagesOffset = 0;
                 hasMoreMessages = true;
 
-                const friend = friendsCache.get(id) || findUserByPhone(id);
+                const friend = friendsCache.get(id);
                 if (friend) {
                     let badges = '';
                     if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
@@ -986,14 +1012,77 @@
                         }
                     }
                     chatHeaderSubtitle.textContent = status;
+                } else {
+                    // Загружаем данные пользователя
+                    (async () => {
+                        const { data } = await supabase
+                            .from('users')
+                            .select('name, username, badges, last_seen')
+                            .eq('phone', id)
+                            .single();
+                        if (data) {
+                            friendsCache.set(id, data);
+                            let badges = '';
+                            if (data.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                            if (data.badges?.red) badges += '<span class="verified red">✓</span>';
+                            chatHeaderTitle.innerHTML = `${data.name || data.username || id} ${badges}`;
+                            let status = 'онлайн';
+                            if (data.last_seen) {
+                                let diff = Date.now() - new Date(data.last_seen).getTime();
+                                if (diff > 120000) {
+                                    let date = new Date(data.last_seen);
+                                    status = 'был ' + date.toLocaleTimeString().slice(0,5);
+                                }
+                            }
+                            chatHeaderSubtitle.textContent = status;
+                        }
+                    })();
                 }
                 typingIndicator.textContent = '';
-                loadMessages(getChatId(id), false);
+                subscribeToMessages(id);
+                subscribeToTyping(id);
                 chatHeaderActions.innerHTML = '';
                 chatInput.style.display = 'flex';
                 messageInput.disabled = false;
                 sendButton.disabled = false;
             }
+
+            // ========== ИНДИКАТОР ПЕЧАТАНИЯ ==========
+            function subscribeToTyping(contactId) {
+                let chatId = getChatId(contactId);
+                if (!chatId) return;
+                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
+                unsubscribeTyping = supabase
+                    .channel(`typing-${chatId}`)
+                    .on(
+                        'broadcast',
+                        { event: 'typing' },
+                        (payload) => {
+                            if (payload.payload.sender !== currentUser.phone && payload.payload.chatId === chatId) {
+                                typingIndicator.textContent = 'печатает...';
+                                clearTimeout(activeTimers.typing);
+                                activeTimers.typing = setTimeout(() => {
+                                    typingIndicator.textContent = '';
+                                }, 3000);
+                            }
+                        }
+                    )
+                    .subscribe();
+            }
+
+            function sendTyping() {
+                if (!currentUser || !currentContactId) return;
+                let chatId = getChatId(currentContactId);
+                supabase.channel(`typing-${chatId}`).send({
+                    type: 'broadcast',
+                    event: 'typing',
+                    payload: { sender: currentUser.phone, chatId: chatId }
+                });
+            }
+
+            messageInput.addEventListener('input', () => {
+                sendTyping();
+            });
 
             // ========== СООБЩЕНИЯ ==========
             function getChatId(contactId) {
@@ -1003,10 +1092,10 @@
                     if (!currentUser) return '';
                     return `private_${[currentUser.phone, contactId].sort().join('_')}`;
                 }
-                return contactId;
+                return contactId; // канал
             }
 
-            function loadMessages(chatId, loadMore = false) {
+            async function loadMessages(chatId, loadMore = false) {
                 if (isLoadingMessages) return;
                 isLoadingMessages = true;
                 if (!loadMore) {
@@ -1019,11 +1108,14 @@
                     }
                 }
                 try {
-                    let db = loadDB();
-                    let msgs = db.messages
-                        .filter(m => m.chat_id === chatId)
-                        .sort((a, b) => new Date(b.time) - new Date(a.time))
-                        .slice(messagesOffset, messagesOffset + messagesLimit);
+                    let query = supabase
+                        .from('messages')
+                        .select('*')
+                        .eq('chat_id', chatId)
+                        .order('time', { ascending: false })
+                        .range(messagesOffset, messagesOffset + messagesLimit - 1);
+                    let { data: msgs, error } = await query;
+                    if (error) throw error;
                     if (!loadMore) messagesContainer.innerHTML = '';
                     if (msgs.length < messagesLimit) hasMoreMessages = false;
                     msgs.reverse();
@@ -1045,6 +1137,73 @@
                 } finally {
                     isLoadingMessages = false;
                 }
+            }
+
+            function subscribeToMessages(contactId) {
+                let chatId = getChatId(contactId);
+                if (!chatId) return;
+                console.log('📡 Подписка на чат/канал:', chatId);
+                loadMessages(chatId, false);
+
+                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
+                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+
+                // Подписка на новые сообщения
+                unsubscribeMessages = supabase
+                    .channel(`messages-${chatId}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'messages',
+                            filter: `chat_id=eq.${chatId}`
+                        },
+                        (payload) => {
+                            console.log('🔥 Новое сообщение:', payload);
+                            let newMsg = payload.new;
+                            newMsg.isMe = (newMsg.sender === currentUser.phone);
+                            appendMessage(newMsg);
+                        }
+                    )
+                    .subscribe();
+
+                // Подписка на обновления сообщений (реакции, редактирование)
+                unsubscribeMessageUpdates = supabase
+                    .channel(`messages-updates-${chatId}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'messages',
+                            filter: `chat_id=eq.${chatId}`
+                        },
+                        (payload) => {
+                            console.log('✏️ Обновление сообщения:', payload);
+                            updateMessageInUI(payload.new);
+                        }
+                    )
+                    .subscribe();
+            }
+
+            function updateMessageInUI(updatedMsg) {
+                const wrapper = document.querySelector(`.message-wrapper[data-id="${updatedMsg.id}"]`);
+                if (!wrapper) return;
+                const msgDiv = wrapper.querySelector('.message');
+                const footer = wrapper.querySelector('.message-footer');
+                if (updatedMsg.text !== undefined && msgDiv && !updatedMsg.image) {
+                    msgDiv.textContent = updatedMsg.text;
+                }
+                if (updatedMsg.reactions && footer) {
+                    const reactionBtn = footer.querySelector('.reaction-btn');
+                    if (reactionBtn) {
+                        const total = Object.values(updatedMsg.reactions).reduce((a,b)=>a+b,0);
+                        reactionBtn.innerHTML = `❤️ <span>${total || 0}</span>`;
+                    }
+                }
+                wrapper.classList.add('message-update');
+                setTimeout(() => wrapper.classList.remove('message-update'), 200);
             }
 
             function showReplyBar(msg) {
@@ -1085,14 +1244,19 @@
                     replyDiv.textContent = '↩️ Загрузка...';
                     w.appendChild(replyDiv);
 
-                    let db = loadDB();
-                    let originalMsg = db.messages.find(m => m.id == msg.reply_to);
-                    if (!originalMsg) {
-                        replyDiv.textContent = '↩️ Сообщение не найдено';
-                    } else {
-                        let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
-                        replyDiv.textContent = `↩️ ${replyText}`;
-                    }
+                    supabase
+                        .from('messages')
+                        .select('text, image, sender')
+                        .eq('id', msg.reply_to)
+                        .single()
+                        .then(({ data: originalMsg, error }) => {
+                            if (error || !originalMsg) {
+                                replyDiv.textContent = '↩️ Сообщение не найдено';
+                                return;
+                            }
+                            let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                            replyDiv.textContent = `↩️ ${replyText}`;
+                        });
                 }
 
                 let md = document.createElement('div');
@@ -1160,14 +1324,19 @@
                     replyDiv.textContent = '↩️ Загрузка...';
                     w.appendChild(replyDiv);
 
-                    let db = loadDB();
-                    let originalMsg = db.messages.find(m => m.id == msg.reply_to);
-                    if (!originalMsg) {
-                        replyDiv.textContent = '↩️ Сообщение не найдено';
-                    } else {
-                        let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
-                        replyDiv.textContent = `↩️ ${replyText}`;
-                    }
+                    supabase
+                        .from('messages')
+                        .select('text, image, sender')
+                        .eq('id', msg.reply_to)
+                        .single()
+                        .then(({ data: originalMsg, error }) => {
+                            if (error || !originalMsg) {
+                                replyDiv.textContent = '↩️ Сообщение не найдено';
+                                return;
+                            }
+                            let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                            replyDiv.textContent = `↩️ ${replyText}`;
+                        });
                 }
 
                 let md = document.createElement('div');
@@ -1226,21 +1395,24 @@
             }
 
             reactionOptions.forEach(btn => {
-                btn.onclick = () => {
+                btn.onclick = async () => {
                     let reaction = btn.dataset.reaction;
                     if (!currentReactionMsg) return;
                     let msg = currentReactionMsg;
                     let reactions = msg.reactions || {};
                     reactions[reaction] = (reactions[reaction] || 0) + 1;
-                    let db = loadDB();
-                    let index = db.messages.findIndex(m => m.id === msg.id);
-                    if (index !== -1) {
-                        db.messages[index].reactions = reactions;
-                        saveDB(db);
+                    try {
+                        await supabase
+                            .from('messages')
+                            .update({ reactions: reactions })
+                            .eq('id', msg.id);
+                        reactionPickerModal.style.display = 'none';
+                        currentReactionMsg = null;
+                        showFloatingReaction(reaction, window.innerWidth/2, window.innerHeight/2);
+                    } catch (error) {
+                        console.error('Ошибка при обновлении реакции:', error);
+                        alert('Не удалось поставить реакцию.');
                     }
-                    reactionPickerModal.style.display = 'none';
-                    currentReactionMsg = null;
-                    showFloatingReaction(reaction, window.innerWidth/2, window.innerHeight/2);
                 };
             });
             closeReactionPicker.onclick = () => {
@@ -1249,12 +1421,11 @@
             };
 
             // ========== ОТПРАВКА СООБЩЕНИЯ ==========
-            sendButton.onclick = () => {
+            sendButton.onclick = async () => {
                 let text = messageInput.value.trim();
                 if (!text || !currentUser || !currentContactId) return;
                 let chatId = getChatId(currentContactId);
                 let msgObj = {
-                    id: Date.now() + Math.random(),
                     chat_id: chatId,
                     sender: currentUser.phone,
                     text: text,
@@ -1264,11 +1435,14 @@
                 if (replyToMessage) {
                     msgObj.reply_to = replyToMessage.id;
                 }
-                let db = loadDB();
-                db.messages.push(msgObj);
-                saveDB(db);
-                msgObj.isMe = true;
-                appendMessage(msgObj);
+                console.log('📤 Отправка в chatId:', chatId, 'объект:', msgObj);
+                try {
+                    await supabase
+                        .from('messages')
+                        .insert([msgObj]);
+                } catch (e) {
+                    alert('Ошибка отправки: ' + e.message);
+                }
 
                 messageInput.value = '';
                 let bar = document.getElementById('replyBar');
@@ -1292,10 +1466,15 @@
             });
 
             // ========== КАНАЛЫ ==========
-            function renderChannelsList(searchTerm = '') {
-                let db = loadDB();
-                let channels = db.channels || [];
-                let filtered = channels.filter(ch => 
+            async function renderChannelsList(searchTerm = '') {
+                let { data: channels, error } = await supabase
+                    .from('channels')
+                    .select('*');
+                if (error) {
+                    console.error('Ошибка загрузки каналов:', error);
+                    return;
+                }
+                let filtered = (channels || []).filter(ch => 
                     ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
                     (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                      (ch.username && ch.username.toLowerCase().includes(searchTerm.toLowerCase())))
@@ -1328,14 +1507,21 @@
                 renderChannelsList(e.target.value);
             });
 
-            function switchChannelView(chId) {
+            async function switchChannelView(chId) {
+                if (unsubscribeMessages) unsubscribeMessages.unsubscribe();
+                if (unsubscribeTyping) unsubscribeTyping.unsubscribe();
+                if (unsubscribeMessageUpdates) unsubscribeMessageUpdates.unsubscribe();
+
                 currentContactId = String(chId);
                 messagesOffset = 0;
                 hasMoreMessages = true;
                 renderChannelsList(channelSearchInput.value);
-                let db = loadDB();
-                let ch = db.channels.find(c => c.id == chId);
-                if (!ch) return;
+                let { data: ch, error } = await supabase
+                    .from('channels')
+                    .select('*')
+                    .eq('id', chId)
+                    .single();
+                if (error || !ch) return;
                 let badges = '';
                 if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
                 if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
@@ -1346,15 +1532,13 @@
                 if (!isAdmin) {
                     let btn = document.createElement('button');
                     btn.textContent = 'Отписаться';
-                    btn.onclick = () => {
+                    btn.onclick = async () => {
                         let idx = ch.subscribers.indexOf(currentUser.phone);
                         if (idx !== -1) ch.subscribers.splice(idx, 1);
-                        let db = loadDB();
-                        let index = db.channels.findIndex(c => c.id == ch.id);
-                        if (index !== -1) {
-                            db.channels[index].subscribers = ch.subscribers;
-                            saveDB(db);
-                        }
+                        await supabase
+                            .from('channels')
+                            .update({ subscribers: ch.subscribers })
+                            .eq('id', ch.id);
                         renderChannelsList();
                         clearChatArea();
                     };
@@ -1370,7 +1554,7 @@
                     };
                     chatHeaderActions.appendChild(settingsBtn);
                 }
-                loadMessages(chId, false);
+                subscribeToMessages(chId);
                 if (isAdmin) {
                     chatInput.style.display = 'flex';
                     messageInput.disabled = false;
@@ -1380,7 +1564,7 @@
                 }
             }
 
-            saveChannelSettings.onclick = () => {
+            saveChannelSettings.onclick = async () => {
                 let chId = window.currentChannelForSettings;
                 if (!chId) return;
                 let name = channelSettingsName.value.trim();
@@ -1388,37 +1572,45 @@
                 let avatar = null;
                 if (channelSettingsAvatarInput.files[0]) {
                     let reader = new FileReader();
-                    reader.onload = ev => {
+                    reader.onload = async ev => {
                         avatar = ev.target.result;
-                        updateChannel(chId, name, username, avatar);
+                        await updateChannel(chId, name, username, avatar);
                     };
                     reader.readAsDataURL(channelSettingsAvatarInput.files[0]);
                 } else {
-                    updateChannel(chId, name, username, null);
+                    await updateChannel(chId, name, username, null);
                 }
             };
 
-            function updateChannel(chId, name, username, avatar) {
-                let db = loadDB();
-                let index = db.channels.findIndex(c => c.id == chId);
-                if (index !== -1) {
-                    if (name) db.channels[index].name = name;
-                    db.channels[index].username = username || null;
-                    if (avatar) db.channels[index].avatar = avatar;
-                    saveDB(db);
+            async function updateChannel(chId, name, username, avatar) {
+                let updates = {};
+                if (name) updates.name = name;
+                updates.username = username || null;
+                if (avatar) updates.avatar = avatar;
+
+                let { error } = await supabase
+                    .from('channels')
+                    .update(updates)
+                    .eq('id', chId);
+
+                if (error) {
+                    alert('Ошибка при сохранении: ' + error.message);
+                    return;
                 }
+
                 channelSettingsModal.style.display = 'none';
                 renderChannelsList();
                 switchChannelView(chId);
             }
 
-            deleteChannelBtn.onclick = () => {
+            deleteChannelBtn.onclick = async () => {
                 let chId = window.currentChannelForSettings;
                 if (!chId) return;
                 if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
-                let db = loadDB();
-                db.channels = db.channels.filter(c => c.id != chId);
-                saveDB(db);
+                await supabase
+                    .from('channels')
+                    .delete()
+                    .eq('id', chId);
                 channelSettingsModal.style.display = 'none';
                 initMode('channels');
                 clearChatArea();
@@ -1428,37 +1620,41 @@
                 channelSettingsModal.style.display = 'none';
             };
 
-            // Исправленный обработчик для кнопки "Создать канал"
             createChannelBtn.addEventListener('click', () => {
                 createChannelModal.style.display = 'flex';
             });
 
-            confirmCreateChannel.addEventListener('click', () => {
+            confirmCreateChannel.addEventListener('click', async () => {
                 let name = channelNameInput.value.trim();
                 let username = channelUsernameInput.value.trim().toLowerCase();
                 if (!name) return;
 
-                let db = loadDB();
-                if (username && db.channels.find(c => c.username === username)) {
-                    alert('Этот @юзернейм уже занят');
-                    return;
+                if (username) {
+                    let { data: existing } = await supabase
+                        .from('channels')
+                        .select('id')
+                        .eq('username', username)
+                        .maybeSingle();
+                    if (existing) {
+                        alert('Этот @юзернейм уже занят');
+                        return;
+                    }
                 }
 
                 if (channelAvatarInput.files[0]) {
                     let reader = new FileReader();
-                    reader.onload = ev => {
+                    reader.onload = async ev => {
                         let avatar = ev.target.result;
-                        finishCreate(name, username, avatar);
+                        await finishCreate(name, username, avatar);
                     };
                     reader.readAsDataURL(channelAvatarInput.files[0]);
                 } else {
-                    finishCreate(name, username, null);
+                    await finishCreate(name, username, null);
                 }
             });
 
-            function finishCreate(name, username, avatar) {
+            async function finishCreate(name, username, avatar) {
                 let newCh = {
-                    id: Date.now() + Math.random(),
                     name,
                     username,
                     avatar,
@@ -1466,15 +1662,21 @@
                     subscribers: [currentUser.phone],
                     badges: {}
                 };
-                let db = loadDB();
-                db.channels.push(newCh);
-                saveDB(db);
+                let { data, error } = await supabase
+                    .from('channels')
+                    .insert([newCh])
+                    .select()
+                    .single();
+                if (error) {
+                    alert('Ошибка создания канала: ' + error.message);
+                    return;
+                }
                 channelNameInput.value = '';
                 channelUsernameInput.value = '';
                 channelAvatarInput.value = '';
                 createChannelModal.style.display = 'none';
                 initMode('channels');
-                switchChannelView(newCh.id);
+                switchChannelView(data.id);
             }
 
             cancelCreateChannel.addEventListener('click', () => {
@@ -1500,11 +1702,12 @@
                 document.querySelector('.channel-actions').appendChild(allChannelsBtn);
             }
 
-            allChannelsBtn.addEventListener('click', () => {
-                let db = loadDB();
-                let allChannels = db.channels;
+            allChannelsBtn.addEventListener('click', async () => {
+                let { data: allChannels } = await supabase
+                    .from('channels')
+                    .select('*');
                 allChannelsList.innerHTML = '';
-                allChannels.forEach(ch => {
+                (allChannels || []).forEach(ch => {
                     let div = document.createElement('div');
                     div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
                     let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
@@ -1515,16 +1718,14 @@
                     let btn = document.createElement('button');
                     btn.textContent = isSub ? '✓ Подписан' : 'Подписаться';
                     btn.disabled = isSub;
-                    btn.onclick = () => {
+                    btn.onclick = async () => {
                         if (!isSub) {
                             if (!ch.subscribers) ch.subscribers = [];
                             ch.subscribers.push(currentUser.phone);
-                            let db = loadDB();
-                            let index = db.channels.findIndex(c => c.id == ch.id);
-                            if (index !== -1) {
-                                db.channels[index].subscribers = ch.subscribers;
-                                saveDB(db);
-                            }
+                            await supabase
+                                .from('channels')
+                                .update({ subscribers: ch.subscribers })
+                                .eq('id', ch.id);
                             btn.disabled = true;
                             btn.textContent = '✓ Подписан';
                             renderChannelsList();
@@ -1541,7 +1742,7 @@
             });
 
             // ========== ДРУЗЬЯ ==========
-            function renderFriendsView() {
+            async function renderFriendsView() {
                 ensureFriends(currentUser);
                 friendsView.innerHTML = '';
 
@@ -1569,9 +1770,13 @@
                     friendsSection.innerHTML += '<p style="color:#8e9aa6;">Список пуст</p>';
                 } else {
                     const friendPhones = currentUser.friends.list;
-                    let db = loadDB();
-                    let friendsData = db.users.filter(u => friendPhones.includes(u.phone));
-                    friendsData.forEach(f => friendsCache.set(f.phone, f));
+                    let { data: friendsData } = await supabase
+                        .from('users')
+                        .select('*')
+                        .in('phone', friendPhones);
+                    if (friendsData) {
+                        friendsData.forEach(f => friendsCache.set(f.phone, f));
+                    }
                     friendPhones.forEach(phone => {
                         let friend = friendsCache.get(phone);
                         if (!friend) return;
@@ -1613,9 +1818,12 @@
                 if (currentUser.friends.incoming.length === 0) {
                     incomingSection.innerHTML += '<p style="color:#8e9aa6;">Нет входящих заявок</p>';
                 } else {
-                    currentUser.friends.incoming.forEach(phone => {
-                        let db = loadDB();
-                        let user = db.users.find(u => u.phone === phone);
+                    currentUser.friends.incoming.forEach(async (phone) => {
+                        let { data: user } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('phone', phone)
+                            .single();
                         if (!user) return;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
@@ -1650,9 +1858,12 @@
                 if (currentUser.friends.outgoing.length === 0) {
                     outgoingSection.innerHTML += '<p style="color:#8e9aa6;">Нет исходящих заявок</p>';
                 } else {
-                    currentUser.friends.outgoing.forEach(phone => {
-                        let db = loadDB();
-                        let user = db.users.find(u => u.phone === phone);
+                    currentUser.friends.outgoing.forEach(async (phone) => {
+                        let { data: user } = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('phone', phone)
+                            .single();
                         if (!user) return;
                         let div = document.createElement('div');
                         div.className = 'friend-item';
@@ -1675,7 +1886,7 @@
             }
 
             // Поиск друга
-            searchFriendBtn.addEventListener('click', () => {
+            searchFriendBtn.addEventListener('click', async () => {
                 ensureFriends(currentUser);
                 let username = friendUsername.value.trim();
                 if (username.startsWith('@')) username = username.slice(1);
@@ -1683,8 +1894,7 @@
                     friendSearchResult.innerHTML = '<p style="color:#ff9800;">Введите юзернейм</p>';
                     return;
                 }
-                let db = loadDB();
-                let foundUser = db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+                let foundUser = await findUserByUsername(username);
 
                 friendSearchResult.innerHTML = '';
                 if (!foundUser) {
@@ -1732,8 +1942,8 @@
                 `;
                 document.body.appendChild(modal);
 
-                document.getElementById('sendFriendRequestFromProfileBtn').onclick = () => {
-                    sendFriendRequest(user.phone);
+                document.getElementById('sendFriendRequestFromProfileBtn').onclick = async () => {
+                    await sendFriendRequest(user.phone);
                     document.body.removeChild(modal);
                 };
                 document.getElementById('sendMessageFromProfileBtn').onclick = () => {
@@ -1746,64 +1956,80 @@
                 };
             }
 
-            function sendFriendRequest(targetPhone) {
+            async function sendFriendRequest(targetPhone) {
                 ensureFriends(currentUser);
                 if (!currentUser.friends.outgoing.includes(targetPhone)) {
                     currentUser.friends.outgoing.push(targetPhone);
                 }
-                let targetUser = findUserByPhone(targetPhone);
+                let { data: targetUser } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', targetPhone)
+                    .single();
                 if (targetUser) {
                     ensureFriends(targetUser);
                     if (!targetUser.friends.incoming.includes(currentUser.phone)) {
                         targetUser.friends.incoming.push(currentUser.phone);
                     }
-                    saveUser(targetUser);
+                    await supabase.from('users').update({ friends: targetUser.friends }).eq('phone', targetPhone);
                 }
-                saveUser(currentUser);
+                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
                 alert('Заявка отправлена');
             }
 
-            function acceptFriendRequest(phone) {
+            async function acceptFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
                 if (!currentUser.friends.list.includes(phone)) currentUser.friends.list.push(phone);
-                let other = findUserByPhone(phone);
+                let { data: other } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', phone)
+                    .single();
                 if (other) {
                     ensureFriends(other);
                     other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
                     if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
-                    saveUser(other);
+                    await supabase.from('users').update({ friends: other.friends }).eq('phone', phone);
                 }
-                saveUser(currentUser);
+                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
                 renderContacts();
                 alert('Заявка принята');
             }
 
-            function rejectFriendRequest(phone) {
+            async function rejectFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-                let other = findUserByPhone(phone);
+                let { data: other } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', phone)
+                    .single();
                 if (other) {
                     ensureFriends(other);
                     other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-                    saveUser(other);
+                    await supabase.from('users').update({ friends: other.friends }).eq('phone', phone);
                 }
-                saveUser(currentUser);
+                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
             }
 
-            function cancelFriendRequest(phone) {
+            async function cancelFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.outgoing = currentUser.friends.outgoing.filter(p => p !== phone);
-                let other = findUserByPhone(phone);
+                let { data: other } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('phone', phone)
+                    .single();
                 if (other) {
                     ensureFriends(other);
                     other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
-                    saveUser(other);
+                    await supabase.from('users').update({ friends: other.friends }).eq('phone', phone);
                 }
-                saveUser(currentUser);
+                await supabase.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
             }
 
@@ -1814,17 +2040,15 @@
             });
 
             // ========== РЕДАКТИРОВАНИЕ СООБЩЕНИЯ ==========
-            saveEditBtn.addEventListener('click', () => {
+            saveEditBtn.addEventListener('click', async () => {
                 if (editMessageId) {
                     let { msg } = editMessageId;
                     let newText = editMessageText.value.trim();
                     if (newText) {
-                        let db = loadDB();
-                        let index = db.messages.findIndex(m => m.id === msg.id);
-                        if (index !== -1) {
-                            db.messages[index].text = newText;
-                            saveDB(db);
-                        }
+                        await supabase
+                            .from('messages')
+                            .update({ text: newText })
+                            .eq('id', msg.id);
                     }
                     editMessageModal.style.display = 'none';
                     editMessageId = null;
@@ -1879,24 +2103,6 @@
             }
 
             // ========== ИНИЦИАЛИЗАЦИЯ ==========
-            // Создаём тестового пользователя, если база пуста
-            let db = loadDB();
-            if (db.users.length === 0) {
-                let testUser = {
-                    phone: '+79016135086',
-                    password: hashPassword('123456'),
-                    username: 'test',
-                    name: 'Тестовый',
-                    avatar: null,
-                    badges: { blue: false, red: false },
-                    premiumUntil: null,
-                    friends: { list: [], incoming: [], outgoing: [] },
-                    last_seen: new Date().toISOString()
-                };
-                db.users.push(testUser);
-                saveDB(db);
-            }
-
             phoneInput.value = '+7';
             passwordInput.value = '';
             updateLoginButtonState();
