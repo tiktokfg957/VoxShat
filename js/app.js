@@ -1,15 +1,8 @@
 // ================== НАСТРОЙКИ SUPABASE ==================
-// ВАЖНО: замените URL и ключ на свои из проекта Supabase
-const SUPABASE_URL = 'https://ваш-проект.supabase.co';
-const SUPABASE_ANON_KEY = 'ваш-anon-ключ';
+const SUPABASE_URL = 'https://yczrkdbyssogvqmwylow.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljenJrZGJ5c3NvZ3ZxbXd5bG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODM3MjcsImV4cCI6MjA4ODU1OTcyN30.hW5tWQA6qS8pKYhR_vUJ5EmWy414MjhTH3ktHEikMpk';
 const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-});
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==================
 let currentUser = null;
@@ -48,116 +41,34 @@ function ensureFriends(user) {
         user.friends = { list: [], incoming: [], outgoing: [] };
     }
 }
+function updatePremiumUI() {
+    if (currentUser && isPremium(currentUser)) {
+        document.getElementById('premiumBadgeHeader').style.display = 'inline';
+        document.getElementById('premiumStatus').innerHTML = '⭐ Premium активен';
+    } else {
+        document.getElementById('premiumBadgeHeader').style.display = 'none';
+        document.getElementById('premiumStatus').innerHTML = '';
+    }
+}
+function clearChatArea() {
+    document.getElementById('chatHeaderTitle').textContent = 'Выберите чат';
+    document.getElementById('chatHeaderSubtitle').textContent = '';
+    document.getElementById('chatHeaderActions').innerHTML = '';
+    document.getElementById('messagesContainer').innerHTML = '';
+    document.getElementById('chatInput').style.display = 'none';
+    document.getElementById('typingIndicator').textContent = '';
+}
+function showFloatingReaction(reaction, x, y) {
+    const div = document.createElement('div');
+    div.className = 'floating-reaction';
+    div.textContent = reaction;
+    div.style.left = x + 'px';
+    div.style.top = y + 'px';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 1000);
+}
 
-// ================== ЭЛЕМЕНТЫ DOM ==================
-const loginScreen = document.getElementById('loginScreen');
-const app = document.getElementById('app');
-const phoneInput = document.getElementById('phoneInput');
-const passwordInput = document.getElementById('passwordInput');
-const loginBtn = document.getElementById('loginBtn');
-const loginError = document.getElementById('loginError');
-const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-const userPhoneDisplay = document.getElementById('userPhoneDisplay');
-const premiumBadgeHeader = document.getElementById('premiumBadgeHeader');
-const logoutBtn = document.getElementById('logoutBtn');
-const themeToggle = document.getElementById('themeToggle');
-const chatsModeBtn = document.getElementById('chatsModeBtn');
-const channelsModeBtn = document.getElementById('channelsModeBtn');
-const friendsModeBtn = document.getElementById('friendsModeBtn');
-const profileModeBtn = document.getElementById('profileModeBtn');
-const settingsModeBtn = document.getElementById('settingsModeBtn');
-const contactsListEl = document.getElementById('contactsList');
-const channelsListEl = document.getElementById('channelsList');
-const friendsView = document.getElementById('friendsView');
-const profileView = document.getElementById('profileView');
-const settingsView = document.getElementById('settingsView');
-const profileUsername = document.getElementById('profileUsername');
-const profileName = document.getElementById('profileName');
-const profileAvatar = document.getElementById('profileAvatar');
-const profileAvatarInput = document.getElementById('profileAvatarInput');
-const profileSaveBtn = document.getElementById('profileSaveBtn');
-const showPremiumBtn = document.getElementById('showPremiumBtn');
-const premiumStatus = document.getElementById('premiumStatus');
-const channelActions = document.getElementById('channelActions');
-const createChannelBtn = document.getElementById('createChannelBtn');
-const chatHeaderTitle = document.getElementById('chatHeaderTitle');
-const chatHeaderSubtitle = document.getElementById('chatHeaderSubtitle');
-const typingIndicator = document.getElementById('typingIndicator');
-const chatHeaderActions = document.getElementById('chatHeaderActions');
-const messagesContainer = document.getElementById('messagesContainer');
-const messageInput = document.getElementById('messageInput');
-const sendButton = document.getElementById('sendButton');
-const micButton = document.getElementById('micButton');
-const emojiButton = document.getElementById('emojiButton');
-const emojiPicker = document.getElementById('emojiPicker');
-const attachButton = document.getElementById('attachButton');
-const fileInput = document.getElementById('fileInput');
-const chatInput = document.getElementById('chatInput');
-const createChannelModal = document.getElementById('createChannelModal');
-const channelNameInput = document.getElementById('channelNameInput');
-const channelUsernameInput = document.getElementById('channelUsernameInput');
-const channelAvatarInput = document.getElementById('channelAvatarInput');
-const confirmCreateChannel = document.getElementById('confirmCreateChannel');
-const cancelCreateChannel = document.getElementById('cancelCreateChannel');
-const allChannelsModal = document.getElementById('allChannelsModal');
-const allChannelsList = document.getElementById('allChannelsList');
-const closeAllChannelsModal = document.getElementById('closeAllChannelsModal');
-const registerModal = document.getElementById('registerModal');
-const registerUsername = document.getElementById('registerUsername');
-const registerPassword = document.getElementById('registerPassword');
-const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
-const confirmRegister = document.getElementById('confirmRegister');
-const cancelRegister = document.getElementById('cancelRegister');
-const registerError = document.getElementById('registerError');
-const resetModal = document.getElementById('resetModal');
-const resetPhone = document.getElementById('resetPhone');
-const resetCodeInput = document.getElementById('resetCode');
-const sendResetCodeBtn = document.getElementById('sendResetCodeBtn');
-const verifyResetBtn = document.getElementById('verifyResetBtn');
-const cancelResetBtn = document.getElementById('cancelResetBtn');
-const newPasswordModal = document.getElementById('newPasswordModal');
-const newPassword = document.getElementById('newPassword');
-const newPasswordConfirm = document.getElementById('newPasswordConfirm');
-const setNewPasswordBtn = document.getElementById('setNewPasswordBtn');
-const cancelNewPasswordBtn = document.getElementById('cancelNewPasswordBtn');
-const statsSubscribers = document.getElementById('statsSubscribers');
-const premiumModal = document.getElementById('premiumModal');
-const closePremiumModal = document.getElementById('closePremiumModal');
-const addFriendModal = document.getElementById('addFriendModal');
-const friendUsername = document.getElementById('friendUsername');
-const searchFriendBtn = document.getElementById('searchFriendBtn');
-const closeAddFriendModal = document.getElementById('closeAddFriendModal');
-const friendSearchResult = document.getElementById('friendSearchResult');
-const editMessageModal = document.getElementById('editMessageModal');
-const editMessageText = document.getElementById('editMessageText');
-const saveEditBtn = document.getElementById('saveEditBtn');
-const cancelEditBtn = document.getElementById('cancelEditBtn');
-const deleteAccountBtn = document.getElementById('deleteAccountBtn');
-const channelSettingsModal = document.getElementById('channelSettingsModal');
-const channelSettingsName = document.getElementById('channelSettingsName');
-const channelSettingsUsername = document.getElementById('channelSettingsUsername');
-const channelSettingsAvatarInput = document.getElementById('channelSettingsAvatarInput');
-const saveChannelSettings = document.getElementById('saveChannelSettings');
-const closeChannelSettings = document.getElementById('closeChannelSettings');
-const deleteChannelBtn = document.getElementById('deleteChannelBtn');
-const channelSearchInput = document.getElementById('channelSearchInput');
-const allChannelsSearch = document.getElementById('allChannelsSearch');
-const openSettingsBtn = document.getElementById('openSettingsBtn');
-const openSettingsAppBtn = document.getElementById('openSettingsAppBtn');
-const styleModal = document.getElementById('styleModal');
-const classicStyleBtn = document.getElementById('classicStyleBtn');
-const voxStyleBtn = document.getElementById('voxStyleBtn');
-const closeStyleModal = document.getElementById('closeStyleModal');
-const selectCountryBtn = document.getElementById('selectCountryBtn');
-const countryModal = document.getElementById('countryModal');
-const countryList = document.getElementById('countryList');
-const closeCountryModal = document.getElementById('closeCountryModal');
-const reactionPickerModal = document.getElementById('reactionPickerModal');
-const closeReactionPicker = document.getElementById('closeReactionPicker');
-const reactionOptions = document.querySelectorAll('.reaction-option');
-let currentReactionMsg = null;
-
-// ================== СТРАНЫ (без изменений) ==================
+// ================== СТРАНЫ И СТИЛИ ==================
 const countries = [
     { name: 'Россия', code: '+7', flag: '🇷🇺' },
     { name: 'Беларусь', code: '+375', flag: '🇧🇾' },
@@ -168,11 +79,12 @@ const countries = [
 let currentCountry = countries[0];
 
 function updateCountryButton() {
-    selectCountryBtn.innerHTML = `${currentCountry.flag} ${currentCountry.name} (${currentCountry.code}) ▼`;
-    phoneInput.value = currentCountry.code;
+    document.getElementById('selectCountryBtn').innerHTML = `${currentCountry.flag} ${currentCountry.name} (${currentCountry.code}) ▼`;
+    document.getElementById('phoneInput').value = currentCountry.code;
 }
 function populateCountryList() {
-    countryList.innerHTML = '';
+    const list = document.getElementById('countryList');
+    list.innerHTML = '';
     countries.forEach(c => {
         let btn = document.createElement('button');
         btn.textContent = `${c.flag} ${c.name} (${c.code})`;
@@ -188,16 +100,15 @@ function populateCountryList() {
         btn.onclick = () => {
             currentCountry = c;
             updateCountryButton();
-            countryModal.style.display = 'none';
+            document.getElementById('countryModal').style.display = 'none';
         };
-        countryList.appendChild(btn);
+        list.appendChild(btn);
     });
 }
-selectCountryBtn.onclick = () => { countryModal.style.display = 'flex'; };
-closeCountryModal.onclick = () => { countryModal.style.display = 'none'; };
+document.getElementById('selectCountryBtn').onclick = () => { document.getElementById('countryModal').style.display = 'flex'; };
+document.getElementById('closeCountryModal').onclick = () => { document.getElementById('countryModal').style.display = 'none'; };
 populateCountryList();
 
-// Автоопределение страны (можно оставить или убрать)
 fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
     .then(res => res.json())
     .then(data => {
@@ -213,14 +124,15 @@ fetch('https://ipinfo.io/json?token=141f86a8a7b1d6')
 
 // Эмодзи-пикер
 const emojis = ['😊','😂','❤️','👍','🔥','😢','🎉','😍','🤔','👌','🙏','💯','⭐','🍕','⚽','🏀','🎵','📚','✈️','🏠'];
+const emojiPicker = document.getElementById('emojiPicker');
 emojis.forEach(e => {
     let s = document.createElement('span');
     s.textContent = e;
-    s.onclick = () => messageInput.value += e;
+    s.onclick = () => document.getElementById('messageInput').value += e;
     emojiPicker.appendChild(s);
 });
 
-// Стиль (классический/градиент)
+// Стиль
 function applyStyle(style) {
     const body = document.body;
     body.classList.remove('classic-style', 'vox-style');
@@ -233,11 +145,11 @@ function applyStyle(style) {
 }
 const savedStyle = localStorage.getItem('voxchat_style') || 'classic';
 applyStyle(savedStyle);
-openSettingsBtn.onclick = () => styleModal.style.display = 'flex';
-openSettingsAppBtn.onclick = () => styleModal.style.display = 'flex';
-classicStyleBtn.onclick = () => { applyStyle('classic'); styleModal.style.display = 'none'; };
-voxStyleBtn.onclick = () => { applyStyle('vox'); styleModal.style.display = 'none'; };
-closeStyleModal.onclick = () => styleModal.style.display = 'none';
+document.getElementById('openSettingsBtn').onclick = () => document.getElementById('styleModal').style.display = 'flex';
+document.getElementById('openSettingsAppBtn').onclick = () => document.getElementById('styleModal').style.display = 'flex';
+document.getElementById('classicStyleBtn').onclick = () => { applyStyle('classic'); document.getElementById('styleModal').style.display = 'none'; };
+document.getElementById('voxStyleBtn').onclick = () => { applyStyle('vox'); document.getElementById('styleModal').style.display = 'none'; };
+document.getElementById('closeStyleModal').onclick = () => document.getElementById('styleModal').style.display = 'none';
 
 // ================== ФУНКЦИИ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ (Supabase) ==================
 async function findUserByPhone(phone) {
@@ -281,30 +193,21 @@ function startPresenceUpdates() {
     document.addEventListener('scroll', updateLastSeen);
     document.addEventListener('keydown', updateLastSeen);
 }
-function updatePremiumUI() {
-    if (currentUser && isPremium(currentUser)) {
-        premiumBadgeHeader.style.display = 'inline';
-        premiumStatus.innerHTML = '⭐ Premium активен';
-    } else {
-        premiumBadgeHeader.style.display = 'none';
-        premiumStatus.innerHTML = '';
-    }
-}
 
 // ================== ВХОД / РЕГИСТРАЦИЯ ==================
 function updateLoginButtonState() {
-    let phoneValid = validatePhone(phoneInput.value);
-    let pwdValid = passwordInput.value.length >= 3;
-    loginBtn.disabled = !(phoneValid && pwdValid);
+    let phoneValid = validatePhone(document.getElementById('phoneInput').value);
+    let pwdValid = document.getElementById('passwordInput').value.length >= 3;
+    document.getElementById('loginBtn').disabled = !(phoneValid && pwdValid);
     document.getElementById('debugInfo').innerHTML = 
         `📱 Телефон: ${phoneValid ? '✅' : '❌'}  🔐 Пароль: ${pwdValid ? '✅' : '❌'}`;
 }
-phoneInput.addEventListener('input', updateLoginButtonState);
-passwordInput.addEventListener('input', updateLoginButtonState);
+document.getElementById('phoneInput').addEventListener('input', updateLoginButtonState);
+document.getElementById('passwordInput').addEventListener('input', updateLoginButtonState);
 
-loginBtn.addEventListener('click', async () => {
-    let phone = phoneInput.value.trim();
-    let pwd = passwordInput.value.trim();
+document.getElementById('loginBtn').addEventListener('click', async () => {
+    let phone = document.getElementById('phoneInput').value.trim();
+    let pwd = document.getElementById('passwordInput').value.trim();
     if (!validatePhone(phone) || pwd.length < 3) return;
 
     let user = await findUserByPhone(phone);
@@ -316,46 +219,46 @@ loginBtn.addEventListener('click', async () => {
                 await saveUser(user);
             }
             currentUser = user;
-            loginScreen.classList.add('fade-out');
+            document.getElementById('loginScreen').classList.add('fade-out');
             setTimeout(() => {
-                loginScreen.style.display = 'none';
-                app.style.display = 'flex';
-                setTimeout(() => app.classList.add('visible'), 50);
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+                setTimeout(() => document.getElementById('app').classList.add('visible'), 50);
             }, 300);
             afterLogin(phone);
         } else {
-            loginError.textContent = 'Неверный пароль';
+            document.getElementById('loginError').textContent = 'Неверный пароль';
         }
     } else {
         // Регистрация
-        registerModal.style.display = 'flex';
-        registerUsername.value = '';
-        registerPassword.value = '';
-        registerPasswordConfirm.value = '';
-        registerError.textContent = '';
+        document.getElementById('registerModal').style.display = 'flex';
+        document.getElementById('registerUsername').value = '';
+        document.getElementById('registerPassword').value = '';
+        document.getElementById('registerPasswordConfirm').value = '';
+        document.getElementById('registerError').textContent = '';
         const validateRegForm = () => {
-            let username = registerUsername.value.trim();
-            let p1 = registerPassword.value;
-            let p2 = registerPasswordConfirm.value;
+            let username = document.getElementById('registerUsername').value.trim();
+            let p1 = document.getElementById('registerPassword').value;
+            let p2 = document.getElementById('registerPasswordConfirm').value;
             let usernameValid = username.length >= 3;
             let passwordValid = p1.length >= 6 && /[a-zA-Z]/.test(p1) && /[0-9]/.test(p1) && p1 === p2;
-            confirmRegister.disabled = !(usernameValid && passwordValid);
+            document.getElementById('confirmRegister').disabled = !(usernameValid && passwordValid);
             if (!usernameValid && username.length > 0) {
-                registerError.textContent = 'Юзернейм должен быть не менее 3 символов';
+                document.getElementById('registerError').textContent = 'Юзернейм должен быть не менее 3 символов';
             } else if (p1 !== p2 && p2.length > 0) {
-                registerError.textContent = 'Пароли не совпадают';
+                document.getElementById('registerError').textContent = 'Пароли не совпадают';
             } else if (!passwordValid && p1.length > 0) {
-                registerError.textContent = 'Пароль: минимум 6 символов, буквы и цифры';
+                document.getElementById('registerError').textContent = 'Пароль: минимум 6 символов, буквы и цифры';
             } else {
-                registerError.textContent = '';
+                document.getElementById('registerError').textContent = '';
             }
         };
-        registerUsername.addEventListener('input', validateRegForm);
-        registerPassword.addEventListener('input', validateRegForm);
-        registerPasswordConfirm.addEventListener('input', validateRegForm);
-        confirmRegister.onclick = async () => {
-            let username = registerUsername.value.trim().toLowerCase();
-            let p1 = registerPassword.value;
+        document.getElementById('registerUsername').addEventListener('input', validateRegForm);
+        document.getElementById('registerPassword').addEventListener('input', validateRegForm);
+        document.getElementById('registerPasswordConfirm').addEventListener('input', validateRegForm);
+        document.getElementById('confirmRegister').onclick = async () => {
+            let username = document.getElementById('registerUsername').value.trim().toLowerCase();
+            let p1 = document.getElementById('registerPassword').value;
             let existing = await findUserByUsername(username);
             if (existing) {
                 alert('Этот @юзернейм уже занят');
@@ -375,23 +278,23 @@ loginBtn.addEventListener('click', async () => {
             };
             await saveUser(newUser);
             currentUser = newUser;
-            registerModal.style.display = 'none';
-            loginScreen.classList.add('fade-out');
+            document.getElementById('registerModal').style.display = 'none';
+            document.getElementById('loginScreen').classList.add('fade-out');
             setTimeout(() => {
-                loginScreen.style.display = 'none';
-                app.style.display = 'flex';
-                setTimeout(() => app.classList.add('visible'), 50);
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+                setTimeout(() => document.getElementById('app').classList.add('visible'), 50);
             }, 300);
             afterLogin(phone);
         };
-        cancelRegister.onclick = () => { registerModal.style.display = 'none'; };
+        document.getElementById('cancelRegister').onclick = () => { document.getElementById('registerModal').style.display = 'none'; };
     }
 });
 
 async function afterLogin(phone) {
     ensureFriends(currentUser);
     currentUserPhone = phone;
-    userPhoneDisplay.textContent = phone.length > 10 ? phone.slice(0,10)+'…' : phone;
+    document.getElementById('userPhoneDisplay').textContent = phone.length > 10 ? phone.slice(0,10)+'…' : phone;
     updatePremiumUI();
     startPresenceUpdates();
     initMode('chats');
@@ -404,22 +307,22 @@ async function afterLogin(phone) {
         switchContact(currentUser.friends.list[0]);
     } else {
         clearChatArea();
-        chatHeaderTitle.textContent = 'Нет чатов';
-        chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
+        document.getElementById('chatHeaderTitle').textContent = 'Нет чатов';
+        document.getElementById('chatHeaderSubtitle').textContent = 'Добавьте друзей, чтобы начать общение';
     }
 }
 
-logoutBtn.addEventListener('click', () => {
-    app.classList.remove('visible');
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    document.getElementById('app').classList.remove('visible');
     setTimeout(() => {
-        app.style.display = 'none';
-        loginScreen.style.display = 'block';
-        loginScreen.classList.remove('fade-out');
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'block';
+        document.getElementById('loginScreen').classList.remove('fade-out');
     }, 300);
-    phoneInput.value = '+7';
-    passwordInput.value = '';
-    loginBtn.disabled = true;
-    loginError.textContent = '';
+    document.getElementById('phoneInput').value = '+7';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('loginBtn').disabled = true;
+    document.getElementById('loginError').textContent = '';
     if (unsubscribeMessages && unsubscribeMessages.unsubscribe) unsubscribeMessages.unsubscribe();
     if (unsubscribeTyping && unsubscribeTyping.unsubscribe) unsubscribeTyping.unsubscribe();
     if (unsubscribeMessageUpdates && unsubscribeMessageUpdates.unsubscribe) unsubscribeMessageUpdates.unsubscribe();
@@ -428,16 +331,16 @@ logoutBtn.addEventListener('click', () => {
     document.getElementById('debugInfo').innerHTML = '';
 });
 
-// ================== ЗАБЫЛИ ПАРОЛЬ (упрощённо) ==================
-forgotPasswordLink.addEventListener('click', (e) => {
+// ================== ЗАБЫЛИ ПАРОЛЬ ==================
+document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
     e.preventDefault();
-    resetModal.style.display = 'flex';
-    resetPhone.value = '+7';
-    resetCodeInput.value = '';
+    document.getElementById('resetModal').style.display = 'flex';
+    document.getElementById('resetPhone').value = '+7';
+    document.getElementById('resetCodeInput').value = '';
     resetCode = null;
 });
-sendResetCodeBtn.addEventListener('click', () => {
-    let phone = resetPhone.value.trim();
+document.getElementById('sendResetCodeBtn').addEventListener('click', () => {
+    let phone = document.getElementById('resetPhone').value.trim();
     if (validatePhone(phone)) {
         resetCode = Math.floor(1000 + Math.random() * 9000).toString();
         alert(`Код подтверждения: ${resetCode}`);
@@ -445,19 +348,19 @@ sendResetCodeBtn.addEventListener('click', () => {
         alert('Введите корректный номер');
     }
 });
-verifyResetBtn.addEventListener('click', () => {
-    let phone = resetPhone.value.trim();
-    let code = resetCodeInput.value.trim();
+document.getElementById('verifyResetBtn').addEventListener('click', () => {
+    let phone = document.getElementById('resetPhone').value.trim();
+    let code = document.getElementById('resetCodeInput').value.trim();
     if (!validatePhone(phone)) { alert('Некорректный номер'); return; }
     if (code !== resetCode) { alert('Неверный код'); return; }
     window.resetPhoneForPassword = phone;
-    resetModal.style.display = 'none';
-    newPasswordModal.style.display = 'flex';
+    document.getElementById('resetModal').style.display = 'none';
+    document.getElementById('newPasswordModal').style.display = 'flex';
 });
-cancelResetBtn.addEventListener('click', () => { resetModal.style.display = 'none'; });
-setNewPasswordBtn.addEventListener('click', async () => {
-    let p1 = newPassword.value;
-    let p2 = newPasswordConfirm.value;
+document.getElementById('cancelResetBtn').addEventListener('click', () => { document.getElementById('resetModal').style.display = 'none'; });
+document.getElementById('setNewPasswordBtn').addEventListener('click', async () => {
+    let p1 = document.getElementById('newPassword').value;
+    let p2 = document.getElementById('newPasswordConfirm').value;
     if (p1 !== p2) { alert('Пароли не совпадают'); return; }
     if (!validatePassword(p1)) { alert('Пароль должен быть минимум 6 символов, содержать буквы и цифры'); return; }
     let phone = window.resetPhoneForPassword;
@@ -468,26 +371,26 @@ setNewPasswordBtn.addEventListener('click', async () => {
         await saveUser(user);
         alert('Пароль успешно изменён');
     }
-    newPasswordModal.style.display = 'none';
-    newPassword.value = '';
-    newPasswordConfirm.value = '';
+    document.getElementById('newPasswordModal').style.display = 'none';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('newPasswordConfirm').value = '';
 });
-cancelNewPasswordBtn.addEventListener('click', () => { newPasswordModal.style.display = 'none'; });
+document.getElementById('cancelNewPasswordBtn').addEventListener('click', () => { document.getElementById('newPasswordModal').style.display = 'none'; });
 
 // ================== ПРОФИЛЬ ==================
-profileAvatarInput.onchange = function(e) {
+document.getElementById('profileAvatarInput').onchange = function(e) {
     let file = e.target.files[0];
     if (file) {
         let reader = new FileReader();
         reader.onload = ev => {
-            profileAvatar.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+            document.getElementById('profileAvatar').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
             currentUser.avatar = ev.target.result;
         };
         reader.readAsDataURL(file);
     }
 };
-profileSaveBtn.onclick = async () => {
-    let newUsername = profileUsername.value.trim().toLowerCase();
+document.getElementById('profileSaveBtn').addEventListener('click', async () => {
+    let newUsername = document.getElementById('profileUsername').value.trim().toLowerCase();
     if (newUsername !== currentUser.username) {
         let existing = await findUserByUsername(newUsername);
         if (existing && existing.phone !== currentUser.phone) {
@@ -496,24 +399,24 @@ profileSaveBtn.onclick = async () => {
         }
     }
     currentUser.username = newUsername;
-    currentUser.name = profileName.value.trim();
+    currentUser.name = document.getElementById('profileName').value.trim();
     await saveUser(currentUser);
     alert('Сохранено');
     renderContacts();
-};
+});
 function loadProfileToForm() {
-    profileUsername.value = currentUser.username || '';
-    profileName.value = currentUser.name || '';
+    document.getElementById('profileUsername').value = currentUser.username || '';
+    document.getElementById('profileName').value = currentUser.name || '';
     if (currentUser.avatar) {
-        profileAvatar.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+        document.getElementById('profileAvatar').innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
     } else {
-        profileAvatar.innerHTML = '<span>👤</span>';
+        document.getElementById('profileAvatar').innerHTML = '<span>👤</span>';
     }
 }
 
 // ================== PREMIUM ==================
-showPremiumBtn.addEventListener('click', () => { premiumModal.style.display = 'flex'; });
-closePremiumModal.addEventListener('click', () => { premiumModal.style.display = 'none'; });
+document.getElementById('showPremiumBtn').addEventListener('click', () => { document.getElementById('premiumModal').style.display = 'flex'; });
+document.getElementById('closePremiumModal').addEventListener('click', () => { document.getElementById('premiumModal').style.display = 'none'; });
 document.querySelectorAll('.premium-option').forEach(btn => {
     btn.addEventListener('click', async function() {
         let months = parseInt(this.dataset.months);
@@ -524,7 +427,7 @@ document.querySelectorAll('.premium-option').forEach(btn => {
             currentUser.badges.red = true;
             await saveUser(currentUser);
             updatePremiumUI();
-            premiumModal.style.display = 'none';
+            document.getElementById('premiumModal').style.display = 'none';
             alert('Premium активирован!');
             renderContacts();
         }
@@ -532,7 +435,7 @@ document.querySelectorAll('.premium-option').forEach(btn => {
 });
 
 // ================== УДАЛЕНИЕ АККАУНТА ==================
-deleteAccountBtn.addEventListener('click', async () => {
+document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
     if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
     await supabaseClient.from('messages').delete().eq('sender', currentUser.phone);
     await supabaseClient.from('channels').delete().eq('createdBy', currentUser.phone);
@@ -559,73 +462,74 @@ deleteAccountBtn.addEventListener('click', async () => {
     }
     await supabaseClient.from('users').delete().eq('phone', currentUser.phone);
     alert('Аккаунт удалён. До свидания!');
-    logoutBtn.click();
+    document.getElementById('logoutBtn').click();
 });
 
 // ================== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==================
 function initMode(mode) {
     currentMode = mode;
-    [chatsModeBtn, channelsModeBtn, friendsModeBtn, profileModeBtn, settingsModeBtn].forEach(b => b.classList.remove('active'));
-    contactsListEl.style.display = 'none';
-    channelsListEl.style.display = 'none';
-    friendsView.style.display = 'none';
-    profileView.style.display = 'none';
-    settingsView.style.display = 'none';
-    channelActions.style.display = 'none';
+    [document.getElementById('chatsModeBtn'), document.getElementById('channelsModeBtn'), document.getElementById('friendsModeBtn'), document.getElementById('profileModeBtn'), document.getElementById('settingsModeBtn')].forEach(b => b.classList.remove('active'));
+    document.getElementById('contactsList').style.display = 'none';
+    document.getElementById('channelsList').style.display = 'none';
+    document.getElementById('friendsView').style.display = 'none';
+    document.getElementById('profileView').style.display = 'none';
+    document.getElementById('settingsView').style.display = 'none';
+    document.getElementById('channelActions').style.display = 'none';
 
     if (mode === 'chats') {
-        chatsModeBtn.classList.add('active');
-        contactsListEl.style.display = 'block';
+        document.getElementById('chatsModeBtn').classList.add('active');
+        document.getElementById('contactsList').style.display = 'block';
         renderContacts();
         if (!currentContactId || currentContactId === '') {
             if (currentUser && currentUser.friends && currentUser.friends.list.length > 0) {
                 switchContact(currentUser.friends.list[0]);
             } else {
                 clearChatArea();
-                chatHeaderTitle.textContent = 'Нет чатов';
-                chatHeaderSubtitle.textContent = 'Добавьте друзей, чтобы начать общение';
+                document.getElementById('chatHeaderTitle').textContent = 'Нет чатов';
+                document.getElementById('chatHeaderSubtitle').textContent = 'Добавьте друзей, чтобы начать общение';
             }
         }
     } else if (mode === 'channels') {
-        channelsModeBtn.classList.add('active');
-        channelsListEl.style.display = 'block';
-        channelActions.style.display = 'flex';
+        document.getElementById('channelsModeBtn').classList.add('active');
+        document.getElementById('channelsList').style.display = 'block';
+        document.getElementById('channelActions').style.display = 'flex';
         renderChannelsList();
         clearChatArea();
     } else if (mode === 'friends') {
-        friendsModeBtn.classList.add('active');
-        friendsView.style.display = 'block';
+        document.getElementById('friendsModeBtn').classList.add('active');
+        document.getElementById('friendsView').style.display = 'block';
         ensureFriends(currentUser);
         renderFriendsView();
         clearChatArea();
     } else if (mode === 'profile') {
-        profileModeBtn.classList.add('active');
-        profileView.style.display = 'flex';
+        document.getElementById('profileModeBtn').classList.add('active');
+        document.getElementById('profileView').style.display = 'flex';
         loadProfileToForm();
         updatePremiumUI();
         clearChatArea();
     } else if (mode === 'settings') {
-        settingsModeBtn.classList.add('active');
-        settingsView.style.display = 'flex';
+        document.getElementById('settingsModeBtn').classList.add('active');
+        document.getElementById('settingsView').style.display = 'flex';
         updateStats();
         clearChatArea();
     }
 }
 
-chatsModeBtn.onclick = () => initMode('chats');
-channelsModeBtn.onclick = () => initMode('channels');
-friendsModeBtn.onclick = () => initMode('friends');
-profileModeBtn.onclick = () => initMode('profile');
-settingsModeBtn.onclick = () => initMode('settings');
+document.getElementById('chatsModeBtn').onclick = () => initMode('chats');
+document.getElementById('channelsModeBtn').onclick = () => initMode('channels');
+document.getElementById('friendsModeBtn').onclick = () => initMode('friends');
+document.getElementById('profileModeBtn').onclick = () => initMode('profile');
+document.getElementById('settingsModeBtn').onclick = () => initMode('settings');
 
-// ================== КОНТАКТЫ (СПИСОК ДРУЗЕЙ) ==================
+// ================== КОНТАКТЫ ==================
 async function renderContacts() {
-    contactsListEl.innerHTML = '';
+    const contactsList = document.getElementById('contactsList');
+    contactsList.innerHTML = '';
 
     if (currentUser && currentUser.friends && currentUser.friends.list) {
         const friendPhones = [...new Set(currentUser.friends.list)];
         if (friendPhones.length === 0) {
-            contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
+            contactsList.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
             return;
         }
         const { data: friendsData } = await supabaseClient
@@ -661,7 +565,7 @@ async function renderContacts() {
                 </div>
             `;
             div.onclick = () => switchContact(friendPhone);
-            contactsListEl.appendChild(div);
+            contactsList.appendChild(div);
         }
     }
 }
@@ -681,7 +585,7 @@ function switchContact(id) {
         let badges = '';
         if (friend.badges?.blue) badges += '<span class="verified blue">✓</span>';
         if (friend.badges?.red) badges += '<span class="verified red">✓</span>';
-        chatHeaderTitle.innerHTML = `${friend.name || friend.username || id} ${badges}`;
+        document.getElementById('chatHeaderTitle').innerHTML = `${friend.name || friend.username || id} ${badges}`;
         let status = 'онлайн';
         if (friend.last_seen) {
             let diff = Date.now() - new Date(friend.last_seen).getTime();
@@ -690,7 +594,7 @@ function switchContact(id) {
                 status = 'был ' + date.toLocaleTimeString().slice(0,5);
             }
         }
-        chatHeaderSubtitle.textContent = status;
+        document.getElementById('chatHeaderSubtitle').textContent = status;
     } else {
         (async () => {
             const { data } = await supabaseClient
@@ -703,7 +607,7 @@ function switchContact(id) {
                 let badges = '';
                 if (data.badges?.blue) badges += '<span class="verified blue">✓</span>';
                 if (data.badges?.red) badges += '<span class="verified red">✓</span>';
-                chatHeaderTitle.innerHTML = `${data.name || data.username || id} ${badges}`;
+                document.getElementById('chatHeaderTitle').innerHTML = `${data.name || data.username || id} ${badges}`;
                 let status = 'онлайн';
                 if (data.last_seen) {
                     let diff = Date.now() - new Date(data.last_seen).getTime();
@@ -712,17 +616,17 @@ function switchContact(id) {
                         status = 'был ' + date.toLocaleTimeString().slice(0,5);
                     }
                 }
-                chatHeaderSubtitle.textContent = status;
+                document.getElementById('chatHeaderSubtitle').textContent = status;
             }
         })();
     }
-    typingIndicator.textContent = '';
+    document.getElementById('typingIndicator').textContent = '';
     subscribeToMessages(id);
     subscribeToTyping(id);
-    chatHeaderActions.innerHTML = '';
-    chatInput.style.display = 'flex';
-    messageInput.disabled = false;
-    sendButton.disabled = false;
+    document.getElementById('chatHeaderActions').innerHTML = '';
+    document.getElementById('chatInput').style.display = 'flex';
+    document.getElementById('messageInput').disabled = false;
+    document.getElementById('sendButton').disabled = false;
 }
 
 // ================== ИНДИКАТОР ПЕЧАТАНИЯ ==================
@@ -737,10 +641,10 @@ function subscribeToTyping(contactId) {
             { event: 'typing' },
             (payload) => {
                 if (payload.payload.sender !== currentUser.phone && payload.payload.chatId === chatId) {
-                    typingIndicator.textContent = 'печатает...';
+                    document.getElementById('typingIndicator').textContent = 'печатает...';
                     clearTimeout(activeTimers.typing);
                     activeTimers.typing = setTimeout(() => {
-                        typingIndicator.textContent = '';
+                        document.getElementById('typingIndicator').textContent = '';
                     }, 3000);
                 }
             }
@@ -758,7 +662,7 @@ function sendTyping() {
     });
 }
 
-messageInput.addEventListener('input', () => {
+document.getElementById('messageInput').addEventListener('input', () => {
     sendTyping();
 });
 
@@ -770,12 +674,13 @@ function getChatId(contactId) {
         if (!currentUser) return '';
         return `private_${[currentUser.phone, contactId].sort().join('_')}`;
     }
-    return contactId; // канал
+    return contactId;
 }
 
 async function loadMessages(chatId, loadMore = false) {
     if (isLoadingMessages) return;
     isLoadingMessages = true;
+    const messagesContainer = document.getElementById('messagesContainer');
     if (!loadMore) {
         messagesOffset = 0;
         messagesContainer.innerHTML = '';
@@ -892,16 +797,17 @@ function showReplyBar(msg) {
         <span>↩️ Ответ на: ${msg.text || (msg.image ? '📷 Изображение' : '')}</span>
         <button id="cancelReplyBtn">✕</button>
     `;
-    chatInput.parentNode.insertBefore(bar, chatInput);
+    document.getElementById('chatInput').parentNode.insertBefore(bar, document.getElementById('chatInput'));
     document.getElementById('cancelReplyBtn').onclick = () => {
         bar.remove();
         replyToMessage = null;
-        messageInput.placeholder = 'Сообщение...';
+        document.getElementById('messageInput').placeholder = 'Сообщение...';
     };
-    messageInput.placeholder = 'Ваш ответ...';
+    document.getElementById('messageInput').placeholder = 'Ваш ответ...';
 }
 
 function appendMessage(msg) {
+    const messagesContainer = document.getElementById('messagesContainer');
     let w = document.createElement('div');
     w.className = 'message-wrapper';
     w.dataset.id = msg.id;
@@ -961,7 +867,7 @@ function appendMessage(msg) {
         currentReactionMsg = msg;
         let rect = e.target.getBoundingClientRect();
         showFloatingReaction('❤️', rect.left, rect.top);
-        reactionPickerModal.style.display = 'flex';
+        document.getElementById('reactionPickerModal').style.display = 'flex';
     };
     f.appendChild(r);
 
@@ -983,21 +889,85 @@ function appendMessage(msg) {
 }
 
 function prependMessage(msg) {
-    // Аналогично appendMessage, но вставляем в начало (для краткости опущено, логика та же)
+    const messagesContainer = document.getElementById('messagesContainer');
+    let w = document.createElement('div');
+    w.className = 'message-wrapper';
+    w.dataset.id = msg.id;
+    w.style.alignSelf = msg.isMe ? 'flex-end' : 'flex-start';
+
+    if (msg.reply_to) {
+        let replyDiv = document.createElement('div');
+        replyDiv.style.fontSize = '12px';
+        replyDiv.style.opacity = '0.7';
+        replyDiv.style.marginBottom = '2px';
+        replyDiv.style.padding = '2px 8px';
+        replyDiv.style.borderLeft = '3px solid #3390ec';
+        replyDiv.style.backgroundColor = 'rgba(51,144,236,0.1)';
+        replyDiv.style.borderRadius = '4px';
+        replyDiv.textContent = '↩️ Загрузка...';
+        w.appendChild(replyDiv);
+
+        supabaseClient
+            .from('messages')
+            .select('text, image, sender')
+            .eq('id', msg.reply_to)
+            .single()
+            .then(({ data: originalMsg, error }) => {
+                if (error || !originalMsg) {
+                    replyDiv.textContent = '↩️ Сообщение не найдено';
+                    return;
+                }
+                let replyText = originalMsg.text || (originalMsg.image ? '📷 Изображение' : '');
+                replyDiv.textContent = `↩️ ${replyText}`;
+            });
+    }
+
+    let md = document.createElement('div');
+    md.className = `message ${msg.isMe ? 'own' : ''}`;
+    if (msg.image) {
+        let img = document.createElement('img');
+        img.src = msg.image;
+        img.onclick = () => window.open(msg.image);
+        md.appendChild(img);
+    } else {
+        md.textContent = msg.text;
+    }
+    let t = document.createElement('div');
+    t.className = 'message-time';
+    t.textContent = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let f = document.createElement('div');
+    f.className = 'message-footer';
+
+    let r = document.createElement('button');
+    r.className = 'reaction-btn';
+    let reactions = msg.reactions || {};
+    let totalReactions = Object.values(reactions).reduce((a,b)=>a+b,0);
+    r.innerHTML = `❤️ <span>${totalReactions || 0}</span>`;
+    r.onclick = (e) => {
+        e.stopPropagation();
+        currentReactionMsg = msg;
+        document.getElementById('reactionPickerModal').style.display = 'flex';
+    };
+    f.appendChild(r);
+
+    let replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.innerHTML = '↩️';
+    replyBtn.onclick = (e) => {
+        e.stopPropagation();
+        replyToMessage = msg;
+        showReplyBar(msg);
+    };
+    f.appendChild(replyBtn);
+
+    w.appendChild(md);
+    w.appendChild(t);
+    w.appendChild(f);
+    messagesContainer.insertBefore(w, messagesContainer.firstChild);
 }
 
 // ================== РЕАКЦИИ ==================
-function showFloatingReaction(reaction, x, y) {
-    const div = document.createElement('div');
-    div.className = 'floating-reaction';
-    div.textContent = reaction;
-    div.style.left = x + 'px';
-    div.style.top = y + 'px';
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 1000);
-}
-
-reactionOptions.forEach(btn => {
+document.querySelectorAll('.reaction-option').forEach(btn => {
     btn.onclick = async () => {
         let reaction = btn.dataset.reaction;
         if (!currentReactionMsg) return;
@@ -1009,7 +979,7 @@ reactionOptions.forEach(btn => {
                 .from('messages')
                 .update({ reactions: reactions })
                 .eq('id', msg.id);
-            reactionPickerModal.style.display = 'none';
+            document.getElementById('reactionPickerModal').style.display = 'none';
             currentReactionMsg = null;
             showFloatingReaction(reaction, window.innerWidth/2, window.innerHeight/2);
         } catch (error) {
@@ -1018,14 +988,14 @@ reactionOptions.forEach(btn => {
         }
     };
 });
-closeReactionPicker.onclick = () => {
-    reactionPickerModal.style.display = 'none';
+document.getElementById('closeReactionPicker').onclick = () => {
+    document.getElementById('reactionPickerModal').style.display = 'none';
     currentReactionMsg = null;
 };
 
 // ================== ОТПРАВКА СООБЩЕНИЯ ==================
-sendButton.onclick = async () => {
-    let text = messageInput.value.trim();
+document.getElementById('sendButton').onclick = async () => {
+    let text = document.getElementById('messageInput').value.trim();
     if (!text || !currentUser || !currentContactId) return;
     let chatId = getChatId(currentContactId);
     let msgObj = {
@@ -1047,23 +1017,23 @@ sendButton.onclick = async () => {
         alert('Ошибка отправки: ' + e.message);
     }
 
-    messageInput.value = '';
+    document.getElementById('messageInput').value = '';
     let bar = document.getElementById('replyBar');
     if (bar) bar.remove();
     replyToMessage = null;
-    messageInput.placeholder = 'Сообщение...';
+    document.getElementById('messageInput').placeholder = 'Сообщение...';
 };
 
-messageInput.onkeypress = e => {
+document.getElementById('messageInput').onkeypress = e => {
     if (e.key === 'Enter') {
         e.preventDefault();
-        sendButton.click();
+        document.getElementById('sendButton').click();
     }
 };
 
 // ================== ПРОКРУТКА ДЛЯ ПАГИНАЦИИ ==================
-messagesContainer.addEventListener('scroll', () => {
-    if (messagesContainer.scrollTop === 0 && hasMoreMessages && !isLoadingMessages) {
+document.getElementById('messagesContainer').addEventListener('scroll', () => {
+    if (document.getElementById('messagesContainer').scrollTop === 0 && hasMoreMessages && !isLoadingMessages) {
         loadMessages(getChatId(currentContactId), true);
     }
 });
@@ -1075,7 +1045,7 @@ async function renderChannelsList(searchTerm = '') {
         .select('*');
     if (error) {
         console.error('Ошибка загрузки каналов:', error);
-        channelsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#f44336;">Ошибка загрузки каналов</div>';
+        document.getElementById('channelsList').innerHTML = '<div style="padding:20px;text-align:center;color:#f44336;">Ошибка загрузки каналов</div>';
         return;
     }
     let filtered = (channels || []).filter(ch => 
@@ -1083,9 +1053,9 @@ async function renderChannelsList(searchTerm = '') {
         (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
          (ch.username && ch.username.toLowerCase().includes(searchTerm.toLowerCase())))
     );
-    channelsListEl.innerHTML = '';
+    document.getElementById('channelsList').innerHTML = '';
     if (!filtered.length) {
-        channelsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет каналов</div>';
+        document.getElementById('channelsList').innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет каналов</div>';
         return;
     }
     filtered.forEach(ch => {
@@ -1103,11 +1073,11 @@ async function renderChannelsList(searchTerm = '') {
             </div>
         `;
         div.onclick = () => switchChannelView(ch.id);
-        channelsListEl.appendChild(div);
+        document.getElementById('channelsList').appendChild(div);
     });
 }
 
-channelSearchInput.addEventListener('input', (e) => {
+document.getElementById('channelSearchInput').addEventListener('input', (e) => {
     renderChannelsList(e.target.value);
 });
 
@@ -1119,7 +1089,7 @@ async function switchChannelView(chId) {
     currentContactId = String(chId);
     messagesOffset = 0;
     hasMoreMessages = true;
-    renderChannelsList(channelSearchInput.value);
+    renderChannelsList(document.getElementById('channelSearchInput').value);
     let { data: ch, error } = await supabaseClient
         .from('channels')
         .select('*')
@@ -1129,9 +1099,9 @@ async function switchChannelView(chId) {
     let badges = '';
     if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
     if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
-    chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
-    chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
-    chatHeaderActions.innerHTML = '';
+    document.getElementById('chatHeaderTitle').innerHTML = `${ch.name} ${badges}`;
+    document.getElementById('chatHeaderSubtitle').textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
+    document.getElementById('chatHeaderActions').innerHTML = '';
     let isAdmin = ch.createdBy === currentUser.phone;
     if (!isAdmin) {
         let btn = document.createElement('button');
@@ -1146,42 +1116,42 @@ async function switchChannelView(chId) {
             renderChannelsList();
             clearChatArea();
         };
-        chatHeaderActions.appendChild(btn);
+        document.getElementById('chatHeaderActions').appendChild(btn);
     } else {
         let settingsBtn = document.createElement('button');
         settingsBtn.textContent = '⚙️ Настройки';
         settingsBtn.onclick = () => {
-            channelSettingsName.value = ch.name;
-            channelSettingsUsername.value = ch.username || '';
-            channelSettingsModal.style.display = 'flex';
+            document.getElementById('channelSettingsName').value = ch.name;
+            document.getElementById('channelSettingsUsername').value = ch.username || '';
+            document.getElementById('channelSettingsModal').style.display = 'flex';
             window.currentChannelForSettings = ch.id;
         };
-        chatHeaderActions.appendChild(settingsBtn);
+        document.getElementById('chatHeaderActions').appendChild(settingsBtn);
     }
     subscribeToMessages(chId);
     if (isAdmin) {
-        chatInput.style.display = 'flex';
-        messageInput.disabled = false;
-        sendButton.disabled = false;
+        document.getElementById('chatInput').style.display = 'flex';
+        document.getElementById('messageInput').disabled = false;
+        document.getElementById('sendButton').disabled = false;
     } else {
-        chatInput.style.display = 'none';
+        document.getElementById('chatInput').style.display = 'none';
     }
 }
 
-// ================== НАСТРОЙКИ КАНАЛОВ (сокращённо) ==================
-saveChannelSettings.onclick = async () => {
+// ================== НАСТРОЙКИ КАНАЛОВ ==================
+document.getElementById('saveChannelSettings').onclick = async () => {
     let chId = window.currentChannelForSettings;
     if (!chId) return;
-    let name = channelSettingsName.value.trim();
-    let username = channelSettingsUsername.value.trim().toLowerCase();
+    let name = document.getElementById('channelSettingsName').value.trim();
+    let username = document.getElementById('channelSettingsUsername').value.trim().toLowerCase();
     let avatar = null;
-    if (channelSettingsAvatarInput.files[0]) {
+    if (document.getElementById('channelSettingsAvatarInput').files[0]) {
         let reader = new FileReader();
         reader.onload = async ev => {
             avatar = ev.target.result;
             await updateChannel(chId, name, username, avatar);
         };
-        reader.readAsDataURL(channelSettingsAvatarInput.files[0]);
+        reader.readAsDataURL(document.getElementById('channelSettingsAvatarInput').files[0]);
     } else {
         await updateChannel(chId, name, username, null);
     }
@@ -1203,12 +1173,12 @@ async function updateChannel(chId, name, username, avatar) {
         return;
     }
 
-    channelSettingsModal.style.display = 'none';
+    document.getElementById('channelSettingsModal').style.display = 'none';
     renderChannelsList();
     switchChannelView(chId);
 }
 
-deleteChannelBtn.onclick = async () => {
+document.getElementById('deleteChannelBtn').onclick = async () => {
     let chId = window.currentChannelForSettings;
     if (!chId) return;
     if (!confirm('Вы уверены, что хотите удалить этот канал? Это действие необратимо.')) return;
@@ -1216,22 +1186,22 @@ deleteChannelBtn.onclick = async () => {
         .from('channels')
         .delete()
         .eq('id', chId);
-    channelSettingsModal.style.display = 'none';
+    document.getElementById('channelSettingsModal').style.display = 'none';
     initMode('channels');
     clearChatArea();
 };
 
-closeChannelSettings.onclick = () => {
-    channelSettingsModal.style.display = 'none';
+document.getElementById('closeChannelSettings').onclick = () => {
+    document.getElementById('channelSettingsModal').style.display = 'none';
 };
 
-createChannelBtn.addEventListener('click', () => {
-    createChannelModal.style.display = 'flex';
+document.getElementById('createChannelBtn').addEventListener('click', () => {
+    document.getElementById('createChannelModal').style.display = 'flex';
 });
 
-confirmCreateChannel.addEventListener('click', async () => {
-    let name = channelNameInput.value.trim();
-    let username = channelUsernameInput.value.trim().toLowerCase();
+document.getElementById('confirmCreateChannel').addEventListener('click', async () => {
+    let name = document.getElementById('channelNameInput').value.trim();
+    let username = document.getElementById('channelUsernameInput').value.trim().toLowerCase();
     if (!name) return;
 
     if (username) {
@@ -1246,13 +1216,13 @@ confirmCreateChannel.addEventListener('click', async () => {
         }
     }
 
-    if (channelAvatarInput.files[0]) {
+    if (document.getElementById('channelAvatarInput').files[0]) {
         let reader = new FileReader();
         reader.onload = async ev => {
             let avatar = ev.target.result;
             await finishCreate(name, username, avatar);
         };
-        reader.readAsDataURL(channelAvatarInput.files[0]);
+        reader.readAsDataURL(document.getElementById('channelAvatarInput').files[0]);
     } else {
         await finishCreate(name, username, null);
     }
@@ -1276,18 +1246,18 @@ async function finishCreate(name, username, avatar) {
         alert('Ошибка создания канала: ' + error.message);
         return;
     }
-    channelNameInput.value = '';
-    channelUsernameInput.value = '';
-    channelAvatarInput.value = '';
-    createChannelModal.style.display = 'none';
+    document.getElementById('channelNameInput').value = '';
+    document.getElementById('channelUsernameInput').value = '';
+    document.getElementById('channelAvatarInput').value = '';
+    document.getElementById('createChannelModal').style.display = 'none';
     initMode('channels');
     switchChannelView(data.id);
 }
 
-cancelCreateChannel.addEventListener('click', () => {
-    createChannelModal.style.display = 'none';
-    channelNameInput.value = '';
-    channelUsernameInput.value = '';
+document.getElementById('cancelCreateChannel').addEventListener('click', () => {
+    document.getElementById('createChannelModal').style.display = 'none';
+    document.getElementById('channelNameInput').value = '';
+    document.getElementById('channelUsernameInput').value = '';
 });
 
 // Кнопка "Все каналы"
@@ -1304,14 +1274,14 @@ if (!allChannelsBtn) {
     allChannelsBtn.style.background = '#2b5278';
     allChannelsBtn.style.color = '#fff';
     allChannelsBtn.style.cursor = 'pointer';
-    channelActions.appendChild(allChannelsBtn);
+    document.getElementById('channelActions').appendChild(allChannelsBtn);
 }
 
 allChannelsBtn.addEventListener('click', async () => {
     let { data: allChannels } = await supabaseClient
         .from('channels')
         .select('*');
-    allChannelsList.innerHTML = '';
+    document.getElementById('allChannelsList').innerHTML = '';
     (allChannels || []).forEach(ch => {
         let div = document.createElement('div');
         div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
@@ -1337,18 +1307,19 @@ allChannelsBtn.addEventListener('click', async () => {
             }
         };
         div.appendChild(btn);
-        allChannelsList.appendChild(div);
+        document.getElementById('allChannelsList').appendChild(div);
     });
-    allChannelsModal.style.display = 'flex';
+    document.getElementById('allChannelsModal').style.display = 'flex';
 });
 
-closeAllChannelsModal.addEventListener('click', () => {
-    allChannelsModal.style.display = 'none';
+document.getElementById('closeAllChannelsModal').addEventListener('click', () => {
+    document.getElementById('allChannelsModal').style.display = 'none';
 });
 
-// ================== ДРУЗЬЯ (сокращённо) ==================
+// ================== ДРУЗЬЯ ==================
 async function renderFriendsView() {
     ensureFriends(currentUser);
+    const friendsView = document.getElementById('friendsView');
     friendsView.innerHTML = '';
 
     let addBtn = document.createElement('button');
@@ -1362,8 +1333,8 @@ async function renderFriendsView() {
     addBtn.style.color = '#fff';
     addBtn.style.cursor = 'pointer';
     addBtn.onclick = () => {
-        addFriendModal.style.display = 'flex';
-        friendSearchResult.innerHTML = '';
+        document.getElementById('addFriendModal').style.display = 'flex';
+        document.getElementById('friendSearchResult').innerHTML = '';
     };
     friendsView.appendChild(addBtn);
 
@@ -1491,40 +1462,40 @@ async function renderFriendsView() {
 }
 
 // Поиск друга
-searchFriendBtn.addEventListener('click', async () => {
+document.getElementById('searchFriendBtn').addEventListener('click', async () => {
     ensureFriends(currentUser);
-    let username = friendUsername.value.trim();
+    let username = document.getElementById('friendUsername').value.trim();
     if (username.startsWith('@')) username = username.slice(1);
     if (!username) {
-        friendSearchResult.innerHTML = '<p style="color:#ff9800;">Введите юзернейм</p>';
+        document.getElementById('friendSearchResult').innerHTML = '<p style="color:#ff9800;">Введите юзернейм</p>';
         return;
     }
     let foundUser = await findUserByUsername(username);
 
-    friendSearchResult.innerHTML = '';
+    document.getElementById('friendSearchResult').innerHTML = '';
     if (!foundUser) {
-        friendSearchResult.innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
+        document.getElementById('friendSearchResult').innerHTML = '<p style="color:#f44336;">Пользователь не найден</p>';
         return;
     }
     if (foundUser.phone === currentUser.phone) {
-        friendSearchResult.innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
+        document.getElementById('friendSearchResult').innerHTML = '<p style="color:#f44336;">Это вы сами</p>';
         return;
     }
     if (currentUser.friends.list.includes(foundUser.phone)) {
-        friendSearchResult.innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
+        document.getElementById('friendSearchResult').innerHTML = '<p style="color:#4caf50;">Уже в друзьях</p>';
         return;
     }
     if (currentUser.friends.outgoing.includes(foundUser.phone)) {
-        friendSearchResult.innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
+        document.getElementById('friendSearchResult').innerHTML = '<p style="color:#ff9800;">Заявка уже отправлена</p>';
         return;
     }
     if (currentUser.friends.incoming.includes(foundUser.phone)) {
-        friendSearchResult.innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
+        document.getElementById('friendSearchResult').innerHTML = '<p style="color:#ff9800;">Этот пользователь отправил вам заявку. Примите её во входящих.</p>';
         return;
     }
 
-    addFriendModal.style.display = 'none';
-    friendUsername.value = '';
+    document.getElementById('addFriendModal').style.display = 'none';
+    document.getElementById('friendUsername').value = '';
     showUserProfile(foundUser);
 });
 
@@ -1638,76 +1609,67 @@ async function cancelFriendRequest(phone) {
     renderFriendsView();
 }
 
-closeAddFriendModal.addEventListener('click', () => {
-    addFriendModal.style.display = 'none';
-    friendUsername.value = '';
-    friendSearchResult.innerHTML = '';
+document.getElementById('closeAddFriendModal').addEventListener('click', () => {
+    document.getElementById('addFriendModal').style.display = 'none';
+    document.getElementById('friendUsername').value = '';
+    document.getElementById('friendSearchResult').innerHTML = '';
 });
 
 // ================== РЕДАКТИРОВАНИЕ СООБЩЕНИЯ ==================
-saveEditBtn.addEventListener('click', async () => {
+document.getElementById('saveEditBtn').addEventListener('click', async () => {
     if (editMessageId) {
         let { msg } = editMessageId;
-        let newText = editMessageText.value.trim();
+        let newText = document.getElementById('editMessageText').value.trim();
         if (newText) {
             await supabaseClient
                 .from('messages')
                 .update({ text: newText })
                 .eq('id', msg.id);
         }
-        editMessageModal.style.display = 'none';
+        document.getElementById('editMessageModal').style.display = 'none';
         editMessageId = null;
     }
 });
-cancelEditBtn.addEventListener('click', () => {
-    editMessageModal.style.display = 'none';
+document.getElementById('cancelEditBtn').addEventListener('click', () => {
+    document.getElementById('editMessageModal').style.display = 'none';
     editMessageId = null;
 });
 
 // ================== ГОЛОСОВОЙ ВВОД ==================
 function initSpeech() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        micButton.style.display = 'none';
+        document.getElementById('micButton').style.display = 'none';
         return;
     }
     let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     let rec = new SR();
     rec.lang = 'ru-RU';
     rec.interimResults = false;
-    micButton.addEventListener('click', () => {
-        micButton.style.backgroundColor = '#f44336';
+    document.getElementById('micButton').addEventListener('click', () => {
+        document.getElementById('micButton').style.backgroundColor = '#f44336';
         rec.start();
     });
     rec.onresult = e => {
-        messageInput.value = e.results[0][0].transcript;
-        micButton.style.backgroundColor = '';
+        document.getElementById('messageInput').value = e.results[0][0].transcript;
+        document.getElementById('micButton').style.backgroundColor = '';
     };
-    rec.onerror = () => micButton.style.backgroundColor = '';
-    rec.onend = () => micButton.style.backgroundColor = '';
+    rec.onerror = () => document.getElementById('micButton').style.backgroundColor = '';
+    rec.onend = () => document.getElementById('micButton').style.backgroundColor = '';
 }
 
 // ================== ТЕМА ==================
-themeToggle.addEventListener('click', () => {
+document.getElementById('themeToggle').addEventListener('click', () => {
     let b = document.body;
     b.classList.toggle('light');
     b.classList.toggle('dark');
-    themeToggle.textContent = b.classList.contains('dark') ? '🌙' : '☀️';
+    document.getElementById('themeToggle').textContent = b.classList.contains('dark') ? '🌙' : '☀️';
 });
-
-function clearChatArea() {
-    chatHeaderTitle.textContent = 'Выберите чат';
-    chatHeaderSubtitle.textContent = '';
-    chatHeaderActions.innerHTML = '';
-    messagesContainer.innerHTML = '';
-    chatInput.style.display = 'none';
-    typingIndicator.textContent = '';
-}
 
 function updateStats() {
     // можно реализовать подсчёт подписчиков
 }
 
 // ================== ИНИЦИАЛИЗАЦИЯ ==================
-phoneInput.value = '+7';
-passwordInput.value = '';
+document.getElementById('phoneInput').value = '+7';
+document.getElementById('passwordInput').value = '';
 updateLoginButtonState();
