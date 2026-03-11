@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>VoxChat — финальная стабильная версия</title>
+    <title>VoxChat — финальная версия</title>
     <!-- CryptoJS для хеширования паролей -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <!-- Supabase JS -->
@@ -11,7 +11,7 @@
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
     <style>
-        /* --- Все стили из предыдущей версии (без изменений) --- */
+        /* --- Все стили (без изменений) --- */
         *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;}
         body{height:100vh;display:flex;justify-content:center;align-items:center;background:#0e1621;transition:background 0.3s;}
         body.dark{background:#0e1621;}
@@ -294,7 +294,7 @@
         </div>
     </div>
 
-    <!-- Модальные окна -->
+    <!-- Модальные окна (полный набор) -->
     <div class="modal" id="registerModal">
         <div class="modal-content">
             <h3>Регистрация</h3>
@@ -571,31 +571,49 @@
 
             // ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ (Supabase) ==========
             async function findUserByPhone(phone) {
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single();
-                if (error) return null;
-                return data;
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('phone', phone)
+                        .single();
+                    if (error) return null;
+                    return data;
+                } catch (e) {
+                    console.error('Ошибка findUserByPhone:', e);
+                    return null;
+                }
             }
             async function findUserByUsername(username) {
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .ilike('username', username)
-                    .maybeSingle();
-                if (error) return null;
-                return data;
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .ilike('username', username)
+                        .maybeSingle();
+                    if (error) return null;
+                    return data;
+                } catch (e) {
+                    console.error('Ошибка findUserByUsername:', e);
+                    return null;
+                }
             }
             async function saveUser(user) {
-                const { error } = await supabaseClient
-                    .from('users')
-                    .upsert(user, { onConflict: 'phone' });
-                if (error) console.error('Ошибка сохранения пользователя:', error);
+                try {
+                    const { error } = await supabaseClient
+                        .from('users')
+                        .upsert(user, { onConflict: 'phone' });
+                    if (error) console.error('Ошибка сохранения пользователя:', error);
+                } catch (e) {
+                    console.error('Ошибка saveUser:', e);
+                }
             }
             async function deleteUser(phone) {
-                await supabaseClient.from('users').delete().eq('phone', phone);
+                try {
+                    await supabaseClient.from('users').delete().eq('phone', phone);
+                } catch (e) {
+                    console.error('Ошибка deleteUser:', e);
+                }
             }
 
             // ========== ВХОД / РЕГИСТРАЦИЯ ==========
@@ -840,30 +858,34 @@
             // ========== УДАЛЕНИЕ АККАУНТА ==========
             deleteAccountBtn.addEventListener('click', async () => {
                 if (!confirm('Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.')) return;
-                await supabaseClient.from('messages').delete().eq('sender', currentUser.phone);
-                await supabaseClient.from('channels').delete().eq('createdBy', currentUser.phone);
-                const { data: allUsers } = await supabaseClient.from('users').select('phone, friends');
-                for (let u of allUsers) {
-                    if (u.friends) {
-                        let changed = false;
-                        if (u.friends.list.includes(currentUser.phone)) {
-                            u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
-                            changed = true;
-                        }
-                        if (u.friends.incoming.includes(currentUser.phone)) {
-                            u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
-                            changed = true;
-                        }
-                        if (u.friends.outgoing.includes(currentUser.phone)) {
-                            u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
-                            changed = true;
-                        }
-                        if (changed) {
-                            await supabaseClient.from('users').update({ friends: u.friends }).eq('phone', u.phone);
+                try {
+                    await supabaseClient.from('messages').delete().eq('sender', currentUser.phone);
+                    await supabaseClient.from('channels').delete().eq('createdBy', currentUser.phone);
+                    const { data: allUsers } = await supabaseClient.from('users').select('phone, friends');
+                    for (let u of allUsers) {
+                        if (u.friends) {
+                            let changed = false;
+                            if (u.friends.list.includes(currentUser.phone)) {
+                                u.friends.list = u.friends.list.filter(p => p !== currentUser.phone);
+                                changed = true;
+                            }
+                            if (u.friends.incoming.includes(currentUser.phone)) {
+                                u.friends.incoming = u.friends.incoming.filter(p => p !== currentUser.phone);
+                                changed = true;
+                            }
+                            if (u.friends.outgoing.includes(currentUser.phone)) {
+                                u.friends.outgoing = u.friends.outgoing.filter(p => p !== currentUser.phone);
+                                changed = true;
+                            }
+                            if (changed) {
+                                await supabaseClient.from('users').update({ friends: u.friends }).eq('phone', u.phone);
+                            }
                         }
                     }
+                    await supabaseClient.from('users').delete().eq('phone', currentUser.phone);
+                } catch (e) {
+                    console.error('Ошибка при удалении аккаунта:', e);
                 }
-                await supabaseClient.from('users').delete().eq('phone', currentUser.phone);
                 alert('Аккаунт удалён. До свидания!');
                 logoutBtn.click();
             });
@@ -935,13 +957,17 @@
                         contactsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#8e9aa6;">Нет друзей</div>';
                         return;
                     }
-                    const { data: friendsData } = await supabaseClient
-                        .from('users')
-                        .select('*')
-                        .in('phone', friendPhones);
-                    if (friendsData) {
-                        friendsData.forEach(f => friendsCache.set(f.phone, f));
+                    let friendsData = [];
+                    try {
+                        const { data } = await supabaseClient
+                            .from('users')
+                            .select('*')
+                            .in('phone', friendPhones);
+                        if (data) friendsData = data;
+                    } catch (e) {
+                        console.error('Ошибка загрузки друзей:', e);
                     }
+                    friendsData.forEach(f => friendsCache.set(f.phone, f));
 
                     for (let friendPhone of friendPhones) {
                         let friend = friendsCache.get(friendPhone);
@@ -1000,27 +1026,29 @@
                     chatHeaderSubtitle.textContent = status;
                 } else {
                     (async () => {
-                        const { data } = await supabaseClient
-                            .from('users')
-                            .select('name, username, badges, last_seen')
-                            .eq('phone', id)
-                            .single();
-                        if (data) {
-                            friendsCache.set(id, data);
-                            let badges = '';
-                            if (data.badges?.blue) badges += '<span class="verified blue">✓</span>';
-                            if (data.badges?.red) badges += '<span class="verified red">✓</span>';
-                            chatHeaderTitle.innerHTML = `${data.name || data.username || id} ${badges}`;
-                            let status = 'онлайн';
-                            if (data.last_seen) {
-                                let diff = Date.now() - new Date(data.last_seen).getTime();
-                                if (diff > 120000) {
-                                    let date = new Date(data.last_seen);
-                                    status = 'был ' + date.toLocaleTimeString().slice(0,5);
+                        try {
+                            const { data } = await supabaseClient
+                                .from('users')
+                                .select('name, username, badges, last_seen')
+                                .eq('phone', id)
+                                .single();
+                            if (data) {
+                                friendsCache.set(id, data);
+                                let badges = '';
+                                if (data.badges?.blue) badges += '<span class="verified blue">✓</span>';
+                                if (data.badges?.red) badges += '<span class="verified red">✓</span>';
+                                chatHeaderTitle.innerHTML = `${data.name || data.username || id} ${badges}`;
+                                let status = 'онлайн';
+                                if (data.last_seen) {
+                                    let diff = Date.now() - new Date(data.last_seen).getTime();
+                                    if (diff > 120000) {
+                                        let date = new Date(data.last_seen);
+                                        status = 'был ' + date.toLocaleTimeString().slice(0,5);
+                                    }
                                 }
+                                chatHeaderSubtitle.textContent = status;
                             }
-                            chatHeaderSubtitle.textContent = status;
-                        }
+                        } catch (e) {}
                     })();
                 }
                 typingIndicator.textContent = '';
@@ -1177,7 +1205,6 @@
                 if (updatedMsg.text !== undefined && msgDiv && !updatedMsg.image) {
                     msgDiv.textContent = updatedMsg.text;
                 }
-                // реакции не поддерживаются
                 wrapper.classList.add('message-update');
                 setTimeout(() => wrapper.classList.remove('message-update'), 200);
             }
@@ -1379,14 +1406,19 @@
 
             // ========== КАНАЛЫ ==========
             async function renderChannelsList(searchTerm = '') {
-                let { data: channels, error } = await supabaseClient
-                    .from('channels')
-                    .select('*');
-                if (error) {
-                    console.error('Ошибка загрузки каналов:', error);
+                let channels = [];
+                try {
+                    let { data, error } = await supabaseClient
+                        .from('channels')
+                        .select('*');
+                    if (error) throw error;
+                    channels = data || [];
+                } catch (e) {
+                    console.error('Ошибка загрузки каналов:', e);
+                    channelsListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#f44336;">Ошибка загрузки каналов</div>';
                     return;
                 }
-                let filtered = (channels || []).filter(ch => 
+                let filtered = channels.filter(ch => 
                     ch.subscribers && ch.subscribers.includes(currentUser.phone) &&
                     (ch.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                      (ch.username && ch.username.toLowerCase().includes(searchTerm.toLowerCase())))
@@ -1428,51 +1460,55 @@
                 messagesOffset = 0;
                 hasMoreMessages = true;
                 renderChannelsList(channelSearchInput.value);
-                let { data: ch, error } = await supabaseClient
-                    .from('channels')
-                    .select('*')
-                    .eq('id', chId)
-                    .single();
-                if (error || !ch) return;
-                let badges = '';
-                if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
-                if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
-                chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
-                chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
-                chatHeaderActions.innerHTML = '';
-                let isAdmin = ch.createdBy === currentUser.phone;
-                if (!isAdmin) {
-                    let btn = document.createElement('button');
-                    btn.textContent = 'Отписаться';
-                    btn.onclick = async () => {
-                        let idx = ch.subscribers.indexOf(currentUser.phone);
-                        if (idx !== -1) ch.subscribers.splice(idx, 1);
-                        await supabaseClient
-                            .from('channels')
-                            .update({ subscribers: ch.subscribers })
-                            .eq('id', ch.id);
-                        renderChannelsList();
-                        clearChatArea();
-                    };
-                    chatHeaderActions.appendChild(btn);
-                } else {
-                    let settingsBtn = document.createElement('button');
-                    settingsBtn.textContent = '⚙️ Настройки';
-                    settingsBtn.onclick = () => {
-                        channelSettingsName.value = ch.name;
-                        channelSettingsUsername.value = ch.username || '';
-                        channelSettingsModal.style.display = 'flex';
-                        window.currentChannelForSettings = ch.id;
-                    };
-                    chatHeaderActions.appendChild(settingsBtn);
-                }
-                subscribeToMessages(chId);
-                if (isAdmin) {
-                    chatInput.style.display = 'flex';
-                    messageInput.disabled = false;
-                    sendButton.disabled = false;
-                } else {
-                    chatInput.style.display = 'none';
+                try {
+                    let { data: ch, error } = await supabaseClient
+                        .from('channels')
+                        .select('*')
+                        .eq('id', chId)
+                        .single();
+                    if (error || !ch) return;
+                    let badges = '';
+                    if (ch.badges?.purple) badges += '<span class="verified purple">✓</span>';
+                    if (ch.badges?.red) badges += '<span class="verified red">✓</span>';
+                    chatHeaderTitle.innerHTML = `${ch.name} ${badges}`;
+                    chatHeaderSubtitle.textContent = `${ch.subscribers ? ch.subscribers.length : 0} подписчиков`;
+                    chatHeaderActions.innerHTML = '';
+                    let isAdmin = ch.createdBy === currentUser.phone;
+                    if (!isAdmin) {
+                        let btn = document.createElement('button');
+                        btn.textContent = 'Отписаться';
+                        btn.onclick = async () => {
+                            let idx = ch.subscribers.indexOf(currentUser.phone);
+                            if (idx !== -1) ch.subscribers.splice(idx, 1);
+                            await supabaseClient
+                                .from('channels')
+                                .update({ subscribers: ch.subscribers })
+                                .eq('id', ch.id);
+                            renderChannelsList();
+                            clearChatArea();
+                        };
+                        chatHeaderActions.appendChild(btn);
+                    } else {
+                        let settingsBtn = document.createElement('button');
+                        settingsBtn.textContent = '⚙️ Настройки';
+                        settingsBtn.onclick = () => {
+                            channelSettingsName.value = ch.name;
+                            channelSettingsUsername.value = ch.username || '';
+                            channelSettingsModal.style.display = 'flex';
+                            window.currentChannelForSettings = ch.id;
+                        };
+                        chatHeaderActions.appendChild(settingsBtn);
+                    }
+                    subscribeToMessages(chId);
+                    if (isAdmin) {
+                        chatInput.style.display = 'flex';
+                        messageInput.disabled = false;
+                        sendButton.disabled = false;
+                    } else {
+                        chatInput.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error('Ошибка при переходе в канал:', e);
                 }
             }
 
@@ -1542,15 +1578,17 @@
                 if (!name) return;
 
                 if (username) {
-                    let { data: existing } = await supabaseClient
-                        .from('channels')
-                        .select('id')
-                        .eq('username', username)
-                        .maybeSingle();
-                    if (existing) {
-                        alert('Этот @юзернейм уже занят');
-                        return;
-                    }
+                    try {
+                        let { data: existing } = await supabaseClient
+                            .from('channels')
+                            .select('id')
+                            .eq('username', username)
+                            .maybeSingle();
+                        if (existing) {
+                            alert('Этот @юзернейм уже занят');
+                            return;
+                        }
+                    } catch (e) {}
                 }
 
                 if (channelAvatarInput.files[0]) {
@@ -1615,11 +1653,15 @@
             }
 
             allChannelsBtn.addEventListener('click', async () => {
-                let { data: allChannels } = await supabaseClient
-                    .from('channels')
-                    .select('*');
+                let allChannels = [];
+                try {
+                    let { data } = await supabaseClient
+                        .from('channels')
+                        .select('*');
+                    allChannels = data || [];
+                } catch (e) {}
                 allChannelsList.innerHTML = '';
-                (allChannels || []).forEach(ch => {
+                allChannels.forEach(ch => {
                     let div = document.createElement('div');
                     div.style.padding = '10px'; div.style.borderBottom = '1px solid #2b3945';
                     let isSub = ch.subscribers && ch.subscribers.includes(currentUser.phone);
@@ -1634,10 +1676,12 @@
                         if (!isSub) {
                             if (!ch.subscribers) ch.subscribers = [];
                             ch.subscribers.push(currentUser.phone);
-                            await supabaseClient
-                                .from('channels')
-                                .update({ subscribers: ch.subscribers })
-                                .eq('id', ch.id);
+                            try {
+                                await supabaseClient
+                                    .from('channels')
+                                    .update({ subscribers: ch.subscribers })
+                                    .eq('id', ch.id);
+                            } catch (e) {}
                             btn.disabled = true;
                             btn.textContent = '✓ Подписан';
                             renderChannelsList();
@@ -1683,13 +1727,15 @@
                 } else {
                     // Убираем дубликаты с помощью Set
                     const uniquePhones = [...new Set(currentUser.friends.list)];
-                    let { data: friendsData } = await supabaseClient
-                        .from('users')
-                        .select('*')
-                        .in('phone', uniquePhones);
-                    if (friendsData) {
-                        friendsData.forEach(f => friendsCache.set(f.phone, f));
-                    }
+                    let friendsData = [];
+                    try {
+                        let { data } = await supabaseClient
+                            .from('users')
+                            .select('*')
+                            .in('phone', uniquePhones);
+                        friendsData = data || [];
+                    } catch (e) {}
+                    friendsData.forEach(f => friendsCache.set(f.phone, f));
                     uniquePhones.forEach(phone => {
                         let friend = friendsCache.get(phone);
                         if (!friend) return;
@@ -1732,34 +1778,36 @@
                     incomingSection.innerHTML += '<p style="color:#8e9aa6;">Нет входящих заявок</p>';
                 } else {
                     for (let phone of currentUser.friends.incoming) {
-                        let { data: user } = await supabaseClient
-                            .from('users')
-                            .select('*')
-                            .eq('phone', phone)
-                            .single();
-                        if (!user) continue;
-                        let div = document.createElement('div');
-                        div.className = 'friend-item';
-                        div.innerHTML = `
-                            <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
-                            <div class="friend-info">
-                                <div class="friend-name">${user.name || user.username || phone}</div>
-                                <div class="friend-status">@${user.username || 'нет'}</div>
-                            </div>
-                            <div style="display:flex;gap:5px;">
-                                <button class="accept-btn" data-phone="${phone}" style="padding:5px 10px;background:#4caf50;border:none;border-radius:12px;color:#fff;">✓</button>
-                                <button class="reject-btn" data-phone="${phone}" style="padding:5px 10px;background:#f44336;border:none;border-radius:12px;color:#fff;">✗</button>
-                            </div>
-                        `;
-                        div.querySelector('.accept-btn').onclick = (e) => {
-                            e.stopPropagation();
-                            acceptFriendRequest(phone);
-                        };
-                        div.querySelector('.reject-btn').onclick = (e) => {
-                            e.stopPropagation();
-                            rejectFriendRequest(phone);
-                        };
-                        incomingSection.appendChild(div);
+                        try {
+                            let { data: user } = await supabaseClient
+                                .from('users')
+                                .select('*')
+                                .eq('phone', phone)
+                                .single();
+                            if (!user) continue;
+                            let div = document.createElement('div');
+                            div.className = 'friend-item';
+                            div.innerHTML = `
+                                <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
+                                <div class="friend-info">
+                                    <div class="friend-name">${user.name || user.username || phone}</div>
+                                    <div class="friend-status">@${user.username || 'нет'}</div>
+                                </div>
+                                <div style="display:flex;gap:5px;">
+                                    <button class="accept-btn" data-phone="${phone}" style="padding:5px 10px;background:#4caf50;border:none;border-radius:12px;color:#fff;">✓</button>
+                                    <button class="reject-btn" data-phone="${phone}" style="padding:5px 10px;background:#f44336;border:none;border-radius:12px;color:#fff;">✗</button>
+                                </div>
+                            `;
+                            div.querySelector('.accept-btn').onclick = (e) => {
+                                e.stopPropagation();
+                                acceptFriendRequest(phone);
+                            };
+                            div.querySelector('.reject-btn').onclick = (e) => {
+                                e.stopPropagation();
+                                rejectFriendRequest(phone);
+                            };
+                            incomingSection.appendChild(div);
+                        } catch (e) {}
                     }
                 }
                 friendsView.appendChild(incomingSection);
@@ -1772,27 +1820,29 @@
                     outgoingSection.innerHTML += '<p style="color:#8e9aa6;">Нет исходящих заявок</p>';
                 } else {
                     for (let phone of currentUser.friends.outgoing) {
-                        let { data: user } = await supabaseClient
-                            .from('users')
-                            .select('*')
-                            .eq('phone', phone)
-                            .single();
-                        if (!user) continue;
-                        let div = document.createElement('div');
-                        div.className = 'friend-item';
-                        div.innerHTML = `
-                            <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
-                            <div class="friend-info">
-                                <div class="friend-name">${user.name || user.username || phone}</div>
-                                <div class="friend-status">ожидание</div>
-                            </div>
-                            <button class="cancel-btn" data-phone="${phone}" style="padding:5px 10px;background:#f44336;border:none;border-radius:12px;color:#fff;">Отменить</button>
-                        `;
-                        div.querySelector('.cancel-btn').onclick = (e) => {
-                            e.stopPropagation();
-                            cancelFriendRequest(phone);
-                        };
-                        outgoingSection.appendChild(div);
+                        try {
+                            let { data: user } = await supabaseClient
+                                .from('users')
+                                .select('*')
+                                .eq('phone', phone)
+                                .single();
+                            if (!user) continue;
+                            let div = document.createElement('div');
+                            div.className = 'friend-item';
+                            div.innerHTML = `
+                                <div class="friend-avatar">${user.avatar ? `<img src="${user.avatar}">` : '👤'}</div>
+                                <div class="friend-info">
+                                    <div class="friend-name">${user.name || user.username || phone}</div>
+                                    <div class="friend-status">ожидание</div>
+                                </div>
+                                <button class="cancel-btn" data-phone="${phone}" style="padding:5px 10px;background:#f44336;border:none;border-radius:12px;color:#fff;">Отменить</button>
+                            `;
+                            div.querySelector('.cancel-btn').onclick = (e) => {
+                                e.stopPropagation();
+                                cancelFriendRequest(phone);
+                            };
+                            outgoingSection.appendChild(div);
+                        } catch (e) {}
                     }
                 }
                 friendsView.appendChild(outgoingSection);
@@ -1874,18 +1924,20 @@
                 if (!currentUser.friends.outgoing.includes(targetPhone)) {
                     currentUser.friends.outgoing.push(targetPhone);
                 }
-                let { data: targetUser } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', targetPhone)
-                    .single();
-                if (targetUser) {
-                    ensureFriends(targetUser);
-                    if (!targetUser.friends.incoming.includes(currentUser.phone)) {
-                        targetUser.friends.incoming.push(currentUser.phone);
+                try {
+                    let { data: targetUser } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('phone', targetPhone)
+                        .single();
+                    if (targetUser) {
+                        ensureFriends(targetUser);
+                        if (!targetUser.friends.incoming.includes(currentUser.phone)) {
+                            targetUser.friends.incoming.push(currentUser.phone);
+                        }
+                        await supabaseClient.from('users').update({ friends: targetUser.friends }).eq('phone', targetPhone);
                     }
-                    await supabaseClient.from('users').update({ friends: targetUser.friends }).eq('phone', targetPhone);
-                }
+                } catch (e) {}
                 await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
                 alert('Заявка отправлена');
@@ -1895,17 +1947,19 @@
                 ensureFriends(currentUser);
                 currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
                 if (!currentUser.friends.list.includes(phone)) currentUser.friends.list.push(phone);
-                let { data: other } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single();
-                if (other) {
-                    ensureFriends(other);
-                    other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-                    if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
-                    await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
-                }
+                try {
+                    let { data: other } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('phone', phone)
+                        .single();
+                    if (other) {
+                        ensureFriends(other);
+                        other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
+                        if (!other.friends.list.includes(currentUser.phone)) other.friends.list.push(currentUser.phone);
+                        await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
+                    }
+                } catch (e) {}
                 await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
                 renderContacts();
@@ -1915,16 +1969,18 @@
             async function rejectFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.incoming = currentUser.friends.incoming.filter(p => p !== phone);
-                let { data: other } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single();
-                if (other) {
-                    ensureFriends(other);
-                    other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
-                    await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
-                }
+                try {
+                    let { data: other } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('phone', phone)
+                        .single();
+                    if (other) {
+                        ensureFriends(other);
+                        other.friends.outgoing = other.friends.outgoing.filter(p => p !== currentUser.phone);
+                        await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
+                    }
+                } catch (e) {}
                 await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
             }
@@ -1932,16 +1988,18 @@
             async function cancelFriendRequest(phone) {
                 ensureFriends(currentUser);
                 currentUser.friends.outgoing = currentUser.friends.outgoing.filter(p => p !== phone);
-                let { data: other } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('phone', phone)
-                    .single();
-                if (other) {
-                    ensureFriends(other);
-                    other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
-                    await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
-                }
+                try {
+                    let { data: other } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('phone', phone)
+                        .single();
+                    if (other) {
+                        ensureFriends(other);
+                        other.friends.incoming = other.friends.incoming.filter(p => p !== currentUser.phone);
+                        await supabaseClient.from('users').update({ friends: other.friends }).eq('phone', phone);
+                    }
+                } catch (e) {}
                 await supabaseClient.from('users').update({ friends: currentUser.friends }).eq('phone', currentUser.phone);
                 renderFriendsView();
             }
@@ -1958,10 +2016,12 @@
                     let { msg } = editMessageId;
                     let newText = editMessageText.value.trim();
                     if (newText) {
-                        await supabaseClient
-                            .from('messages')
-                            .update({ text: newText })
-                            .eq('id', msg.id);
+                        try {
+                            await supabaseClient
+                                .from('messages')
+                                .update({ text: newText })
+                                .eq('id', msg.id);
+                        } catch (e) {}
                     }
                     editMessageModal.style.display = 'none';
                     editMessageId = null;
