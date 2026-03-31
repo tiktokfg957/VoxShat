@@ -40,8 +40,9 @@ class LoginActivity : AppCompatActivity() {
 
     private fun login(username: String) {
         lifecycleScope.launch {
-            // Ищем пользователя с таким именем
-            val existingUser = repository.getAllUsers().firstOrNull()?.find { it.name == username }
+            // Получаем всех пользователей из базы (поток, но мы берём первый элемент списка)
+            val users = repository.getAllUsers().firstOrNull() ?: emptyList()
+            val existingUser = users.find { it.name == username }
             if (existingUser != null) {
                 // Вход существующего
                 startChatList(existingUser.id)
