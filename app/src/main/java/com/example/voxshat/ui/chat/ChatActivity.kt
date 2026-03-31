@@ -14,7 +14,6 @@ import com.example.voxshat.VoxShatApplication
 import com.example.voxshat.data.Repository
 import com.example.voxshat.data.model.Message
 import com.example.voxshat.databinding.ActivityChatBinding
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class ChatActivity : AppCompatActivity() {
@@ -48,7 +47,7 @@ class ChatActivity : AppCompatActivity() {
         binding.recyclerView.adapter = adapter
 
         lifecycleScope.launch {
-            repository.getMessagesForChat(chatId).collectLatest { messages ->
+            repository.getMessagesForChat(chatId).collect { messages ->
                 adapter.submitList(messages.reversed())
                 binding.recyclerView.scrollToPosition(adapter.itemCount - 1)
             }
@@ -62,7 +61,6 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
-        // Помечаем сообщения как прочитанные
         lifecycleScope.launch {
             repository.markMessagesAsRead(chatId, currentUserId)
         }
@@ -79,7 +77,6 @@ class ChatActivity : AppCompatActivity() {
             )
             repository.insertMessage(message)
 
-            // Обновляем последнее сообщение в чате
             val chat = repository.getChatById(chatId)
             if (chat != null) {
                 chat.lastMessage = text
