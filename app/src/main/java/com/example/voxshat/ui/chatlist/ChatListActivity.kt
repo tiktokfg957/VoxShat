@@ -14,6 +14,7 @@ import com.example.voxshat.data.Repository
 import com.example.voxshat.data.model.Chat
 import com.example.voxshat.databinding.ActivityChatListBinding
 import com.example.voxshat.ui.chat.ChatActivity
+import com.example.voxshat.ui.profile.ProfileActivity
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -56,7 +57,7 @@ class ChatListActivity : AppCompatActivity() {
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean = false
             override fun onQueryTextChange(newText: String?): Boolean {
-                // фильтрация пока не реализована, но можно добавить
+                // TODO: фильтрация по имени чата
                 return true
             }
         })
@@ -83,7 +84,7 @@ class ChatListActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_profile -> {
-                startActivity(Intent(this, com.example.voxshat.ui.profile.ProfileActivity::class.java))
+                startActivity(Intent(this, ProfileActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)
