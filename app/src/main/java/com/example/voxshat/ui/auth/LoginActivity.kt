@@ -41,7 +41,6 @@ class LoginActivity : AppCompatActivity() {
 
     private fun login(username: String) {
         lifecycleScope.launch {
-            // Получаем список пользователей из Flow
             val users = repository.getAllUsers().first()
             val existingUser = users.find { it.name == username }
             if (existingUser != null) {
