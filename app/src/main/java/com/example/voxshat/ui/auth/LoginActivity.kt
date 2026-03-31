@@ -10,6 +10,7 @@ import com.example.voxshat.data.Repository
 import com.example.voxshat.data.model.User
 import com.example.voxshat.databinding.ActivityLoginBinding
 import com.example.voxshat.ui.chatlist.ChatListActivity
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -40,17 +41,14 @@ class LoginActivity : AppCompatActivity() {
 
     private fun login(username: String) {
         lifecycleScope.launch {
-            // Получаем всех пользователей из базы (поток, но мы берём первый элемент списка)
-            val users = repository.getAllUsers().firstOrNull() ?: emptyList()
+            // Получаем список пользователей из Flow
+            val users = repository.getAllUsers().first()
             val existingUser = users.find { it.name == username }
             if (existingUser != null) {
-                // Вход существующего
                 startChatList(existingUser.id)
             } else {
-                // Создаём нового пользователя
                 val newUser = User(name = username)
                 repository.insertUser(newUser)
-                // Добавляем демо-чаты, если ещё нет
                 repository.populateDemoData()
                 startChatList(newUser.id)
             }
