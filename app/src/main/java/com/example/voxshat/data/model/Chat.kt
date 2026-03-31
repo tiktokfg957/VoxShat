@@ -7,9 +7,9 @@ import androidx.room.PrimaryKey
 data class Chat(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val name: String,
-    val avatar: String? = null,
-    val lastMessage: String? = null,
-    val lastMessageTime: Long = System.currentTimeMillis(),
-    val unreadCount: Int = 0
+    var name: String,
+    var avatar: String? = null,
+    var lastMessage: String? = null,
+    var lastMessageTime: Long = System.currentTimeMillis(),
+    var unreadCount: Int = 0
 )
