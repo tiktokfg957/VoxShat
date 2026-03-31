@@ -39,7 +39,6 @@ class ChatActivity : AppCompatActivity() {
         repository = Repository((application as VoxShatApplication).database)
 
         adapter = MessageAdapter(currentUserId) { message ->
-            // Долгое нажатие – копирование или удаление
             showMessageOptions(message)
         }
 
@@ -50,7 +49,7 @@ class ChatActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             repository.getMessagesForChat(chatId).collectLatest { messages ->
-                adapter.submitList(messages.reversed()) // так как храним в обратном порядке, но адаптер покажет
+                adapter.submitList(messages.reversed())
                 binding.recyclerView.scrollToPosition(adapter.itemCount - 1)
             }
         }
@@ -91,12 +90,12 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun showMessageOptions(message: Message) {
-        val options = arrayOf("Копировать")
+        val options = mutableListOf("Копировать")
         if (message.senderId == currentUserId) {
-            options += "Удалить"
+            options.add("Удалить")
         }
         AlertDialog.Builder(this)
-            .setItems(options) { _, which ->
+            .setItems(options.toTypedArray()) { _, which ->
                 when (options[which]) {
                     "Копировать" -> copyToClipboard(message.text)
                     "Удалить" -> deleteMessage(message)
