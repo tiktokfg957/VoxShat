@@ -62,7 +62,6 @@ class ChatListAdapter(
             } else {
                 tvUnread.visibility = View.GONE
             }
-            // Здесь можно загрузить аватар через Glide или Picasso, пока оставляем иконку
         }
     }
 }
