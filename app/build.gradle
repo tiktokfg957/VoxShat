@@ -5,6 +5,7 @@ plugins {
 }
 
 android {
+    namespace 'com.example.voxshat'
     compileSdk 34
 
     defaultConfig {
