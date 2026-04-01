@@ -5,9 +5,11 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import android.view.MenuItem
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voxshat.R
@@ -39,6 +41,7 @@ class ChatActivity : AppCompatActivity() {
         chatId = intent.getLongExtra("chat_id", 0)
         currentUserId = intent.getLongExtra("current_user_id", 0)
         if (currentUserId == 0L) {
+            // fallback – в реальности нужно передавать
             currentUserId = 1L
         }
 
@@ -56,23 +59,25 @@ class ChatActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val chat = repository.getChatById(chatId)
             currentChat = chat
+
+            // Устанавливаем заголовок
             supportActionBar?.title = chat?.name ?: "Чат"
 
-            // Добавляем синюю галочку для чата поддержки
+            // Добавляем галочку в тулбар, если чат поддержки
             if (chat?.username == "voxshat_support") {
-                supportActionBar?.subtitle = "Официальный аккаунт"
-                // Можно добавить иконку в тулбар (справа)
-                val menu = binding.toolbar.menu
-                val verifiedItem = menu.add("")
-                verifiedItem.setIcon(getVerifiedIcon("support"))
-                verifiedItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                verifiedItem.setOnMenuItemClickListener {
-                    Toast.makeText(this@ChatActivity, "Официальный аккаунт поддержки", Toast.LENGTH_SHORT).show()
-                    true
-                }
+                val toolbar = binding.toolbar
+                val verifiedIcon = ImageView(this@ChatActivity)
+                verifiedIcon.setImageResource(getVerifiedIcon("support"))
+                val params = Toolbar.LayoutParams(
+                    Toolbar.LayoutParams.WRAP_CONTENT,
+                    Toolbar.LayoutParams.WRAP_CONTENT
+                )
+                params.gravity = android.view.Gravity.END
+                params.rightMargin = 56
+                toolbar.addView(verifiedIcon, params)
             }
 
-            // Добавляем шестерёнку для владельца канала
+            // Если канал и владелец – добавляем шестерёнку
             if (chat?.isChannel == true && chat.adminId == currentUserId) {
                 val menu = binding.toolbar.menu
                 val settingsItem = menu.add("Настройки")
