@@ -36,16 +36,17 @@ class ProfileActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Профиль"
+        supportActionBar?.title = getString(R.string.profile)
 
-        repository = Repository((application as VoxShatApplication).database)
         currentUserId = intent.getLongExtra("current_user_id", 0)
-
         if (currentUserId == 0L) {
+            // Если не передали, пробуем получить из SharedPreferences или просто выходим
             Toast.makeText(this, "Ошибка: пользователь не авторизован", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
+
+        repository = Repository((application as VoxShatApplication).database)
 
         loadUserData()
 
@@ -77,12 +78,20 @@ class ProfileActivity : AppCompatActivity() {
                 savedUri?.let {
                     binding.ivAvatar.setImageURI(Uri.parse(it))
                 }
+            } else {
+                Toast.makeText(this@ProfileActivity, "Пользователь не найден", Toast.LENGTH_SHORT).show()
+                finish()
             }
         }
     }
 
     private fun showStatusDialog() {
-        val statuses = arrayOf("онлайн", "офлайн", "не беспокоить", "скоро вернусь")
+        val statuses = arrayOf(
+            getString(R.string.online),
+            getString(R.string.offline),
+            getString(R.string.do_not_disturb),
+            getString(R.string.back_soon)
+        )
         android.app.AlertDialog.Builder(this)
             .setTitle("Выберите статус")
             .setItems(statuses) { _, which ->
