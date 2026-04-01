@@ -57,7 +57,7 @@ class ChatListActivity : AppCompatActivity() {
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean = false
             override fun onQueryTextChange(newText: String?): Boolean {
-                // TODO: фильтрация по имени чата
+                // фильтрация пока не реализована
                 return true
             }
         })
