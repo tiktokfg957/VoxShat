@@ -30,6 +30,9 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnChangePassword.setOnClickListener {
             Toast.makeText(this, "Смена пароля будет доступна после подключения Firebase", Toast.LENGTH_SHORT).show()
         }
+
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     private fun setTheme(isDark: Boolean) {
@@ -39,5 +42,10 @@ class SettingsActivity : AppCompatActivity() {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         }
         recreate()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressed()
+        return true
     }
 }
