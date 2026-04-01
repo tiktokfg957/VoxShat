@@ -4,16 +4,19 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.SearchView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.voxshat.R
 import com.example.voxshat.VoxShatApplication
 import com.example.voxshat.data.Repository
 import com.example.voxshat.data.model.Chat
 import com.example.voxshat.databinding.ActivityChatListBinding
 import com.example.voxshat.ui.chat.ChatActivity
+import com.example.voxshat.ui.channel.CreateChannelActivity
 import com.example.voxshat.ui.profile.ProfileActivity
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -38,7 +41,7 @@ class ChatListActivity : AppCompatActivity() {
 
         adapter = ChatListAdapter(
             onChatClick = { chat -> openChat(chat) },
-            onChatLongClick = { chat -> deleteChat(chat) }
+            onChatLongClick = { chat -> deleteChatWithConfirm(chat) }
         )
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
@@ -47,20 +50,51 @@ class ChatListActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repository.getAllChats().collectLatest { chats ->
                 adapter.submitList(chats)
+                binding.swipeRefresh.isRefreshing = false
             }
         }
 
+        binding.swipeRefresh.setOnRefreshListener {
+            refreshChats()
+        }
+
         setupSearch()
+
+        binding.fab.setOnClickListener {
+            val intent = Intent(this, CreateChannelActivity::class.java)
+            intent.putExtra("current_user_id", currentUserId)
+            startActivity(intent)
+        }
+        binding.fab.visibility = View.VISIBLE
+    }
+
+    private fun refreshChats() {
+        lifecycleScope.launch {
+            repository.getAllChats().collectLatest { chats ->
+                adapter.submitList(chats)
+                binding.swipeRefresh.isRefreshing = false
+            }
+        }
     }
 
     private fun setupSearch() {
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean = false
             override fun onQueryTextChange(newText: String?): Boolean {
-                // фильтрация пока не реализована
+                filterChats(newText ?: "")
                 return true
             }
         })
+    }
+
+    private fun filterChats(query: String) {
+        lifecycleScope.launch {
+            repository.getAllChats().collectLatest { chats ->
+                val filtered = if (query.isEmpty()) chats
+                else chats.filter { it.name.contains(query, ignoreCase = true) || it.username.contains(query, ignoreCase = true) }
+                adapter.submitList(filtered)
+            }
+        }
     }
 
     private fun openChat(chat: Chat) {
@@ -70,10 +104,17 @@ class ChatListActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    private fun deleteChat(chat: Chat) {
-        lifecycleScope.launch {
-            repository.deleteChat(chat)
-        }
+    private fun deleteChatWithConfirm(chat: Chat) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Удалить чат")
+            .setMessage("Вы уверены, что хотите удалить чат с ${chat.name}?")
+            .setPositiveButton("Удалить") { _, _ ->
+                lifecycleScope.launch {
+                    repository.deleteChat(chat)
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
