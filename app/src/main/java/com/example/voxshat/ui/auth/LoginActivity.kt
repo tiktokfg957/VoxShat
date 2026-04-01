@@ -10,8 +10,10 @@ import com.example.voxshat.data.Repository
 import com.example.voxshat.data.model.User
 import com.example.voxshat.databinding.ActivityLoginBinding
 import com.example.voxshat.ui.chatlist.ChatListActivity
+import com.example.voxshat.utils.SupportBot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.*
 
 class LoginActivity : AppCompatActivity() {
 
@@ -39,16 +41,24 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun login(username: String) {
+    private fun login(name: String) {
         lifecycleScope.launch {
             val users = repository.getAllUsers().first()
-            val existingUser = users.find { it.name == username }
+            val existingUser = users.find { it.name == name }
             if (existingUser != null) {
                 startChatList(existingUser.id)
             } else {
-                val newUser = User(name = username)
+                val baseUsername = name.lowercase(Locale.getDefault()).replace(" ", "")
+                var username = baseUsername
+                var counter = 1
+                while (repository.getUserByUsername(username) != null) {
+                    username = "$baseUsername$counter"
+                    counter++
+                }
+                val newUser = User(name = name, username = username)
                 repository.insertUser(newUser)
                 repository.populateDemoData()
+                SupportBot.ensureSupportChat(repository, newUser.id)
                 startChatList(newUser.id)
             }
         }
