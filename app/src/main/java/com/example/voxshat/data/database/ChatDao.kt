@@ -20,4 +20,7 @@ interface ChatDao {
 
     @Query("SELECT * FROM chats WHERE id = :chatId")
     suspend fun getChatById(chatId: Long): Chat?
+
+    @Query("SELECT * FROM chats WHERE username = :username")
+    suspend fun getChatByUsername(username: String): Chat?
 }
