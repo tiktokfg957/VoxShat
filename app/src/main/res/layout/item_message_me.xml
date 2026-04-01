@@ -15,10 +15,24 @@
         android:textColor="@android:color/white"
         android:maxWidth="250dp"/>
 
-    <TextView
-        android:id="@+id/tvTime"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="10sp"
-        android:layout_marginTop="4dp"/>
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:id="@+id/tvTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:layout_marginEnd="4dp"/>
+
+        <ImageView
+            android:id="@+id/ivReadStatus"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_sent"
+            android:visibility="gone"/>
+    </LinearLayout>
 </LinearLayout>
