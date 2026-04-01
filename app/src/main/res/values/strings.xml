@@ -18,4 +18,9 @@
     <string name="delete_message">Удалить</string>
     <string name="dark_theme">Тёмная тема</string>
     <string name="logout">Выйти</string>
+    <string name="change_status">Сменить статус</string>
+    <string name="online">онлайн</string>
+    <string name="offline">офлайн</string>
+    <string name="do_not_disturb">не беспокоить</string>
+    <string name="back_soon">скоро вернусь</string>
 </resources>
