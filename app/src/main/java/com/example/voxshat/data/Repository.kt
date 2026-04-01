@@ -5,6 +5,7 @@ import com.example.voxshat.data.model.Chat
 import com.example.voxshat.data.model.Message
 import com.example.voxshat.data.model.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 class Repository(private val db: AppDatabase) {
 
@@ -29,26 +30,27 @@ class Repository(private val db: AppDatabase) {
 
     // Demo data
     suspend fun populateDemoData() {
-        // Создаём тестового пользователя, если его нет
-        val existingUsers = db.userDao().getAllUsers().firstOrNull()
-        if (existingUsers.isNullOrEmpty()) {
-            val user1 = User(name = "Я")
-            val user2 = User(name = "Анна")
-            val user3 = User(name = "Дмитрий")
-            insertUser(user1)
-            insertUser(user2)
-            insertUser(user3)
+        // Проверяем, есть ли уже чаты
+        val chats = db.chatDao().getAllChats().first()
+        if (chats.isNotEmpty()) return
 
-            val chat1 = Chat(name = "Анна", lastMessage = "Привет!", lastMessageTime = System.currentTimeMillis() - 3600000)
-            val chat2 = Chat(name = "Дмитрий", lastMessage = "Как дела?", lastMessageTime = System.currentTimeMillis() - 7200000)
-            insertChat(chat1)
-            insertChat(chat2)
+        // Создаём тестовых пользователей
+        val user1 = User(name = "Я")
+        val user2 = User(name = "Анна")
+        val user3 = User(name = "Дмитрий")
+        insertUser(user1)
+        insertUser(user2)
+        insertUser(user3)
 
-            val currentUserId = user1.id
-            insertMessage(Message(chatId = chat1.id, senderId = user2.id, text = "Привет!", timestamp = System.currentTimeMillis() - 3600000))
-            insertMessage(Message(chatId = chat1.id, senderId = currentUserId, text = "Привет! Как ты?", timestamp = System.currentTimeMillis() - 3500000))
-            insertMessage(Message(chatId = chat2.id, senderId = user3.id, text = "Как дела?", timestamp = System.currentTimeMillis() - 7200000))
-            insertMessage(Message(chatId = chat2.id, senderId = currentUserId, text = "Нормально, а у тебя?", timestamp = System.currentTimeMillis() - 7100000))
-        }
+        val chat1 = Chat(name = "Анна", lastMessage = "Привет!", lastMessageTime = System.currentTimeMillis() - 3600000)
+        val chat2 = Chat(name = "Дмитрий", lastMessage = "Как дела?", lastMessageTime = System.currentTimeMillis() - 7200000)
+        insertChat(chat1)
+        insertChat(chat2)
+
+        val currentUserId = user1.id
+        insertMessage(Message(chatId = chat1.id, senderId = user2.id, text = "Привет!", timestamp = System.currentTimeMillis() - 3600000))
+        insertMessage(Message(chatId = chat1.id, senderId = currentUserId, text = "Привет! Как ты?", timestamp = System.currentTimeMillis() - 3500000))
+        insertMessage(Message(chatId = chat2.id, senderId = user3.id, text = "Как дела?", timestamp = System.currentTimeMillis() - 7200000))
+        insertMessage(Message(chatId = chat2.id, senderId = currentUserId, text = "Нормально, а у тебя?", timestamp = System.currentTimeMillis() - 7100000))
     }
 }
