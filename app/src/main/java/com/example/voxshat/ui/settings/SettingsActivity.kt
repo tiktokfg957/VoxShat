@@ -20,7 +20,7 @@ class SettingsActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Настройки"
+        supportActionBar?.title = getString(R.string.settings)
 
         sharedPrefs = getSharedPreferences("settings", MODE_PRIVATE)
 
