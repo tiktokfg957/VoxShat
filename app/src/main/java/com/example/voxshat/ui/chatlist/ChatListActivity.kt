@@ -123,12 +123,14 @@ class ChatListActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_profile -> {
-                startActivity(Intent(this, ProfileActivity::class.java))
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    return when (item.itemId) {
+        R.id.action_profile -> {
+            val intent = Intent(this, ProfileActivity::class.java)
+            intent.putExtra("current_user_id", currentUserId)
+            startActivity(intent)
+            true
         }
+        else -> super.onOptionsItemSelected(item)
     }
+}
 }
