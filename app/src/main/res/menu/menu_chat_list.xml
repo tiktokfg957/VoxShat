@@ -4,5 +4,5 @@
         android:id="@+id/action_profile"
         android:title="@string/profile"
         android:icon="@android:drawable/ic_menu_edit"
-        android:showAsAction="always" />
+        android:showAsAction="never" />
 </menu>
