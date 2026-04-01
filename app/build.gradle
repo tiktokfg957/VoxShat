@@ -5,7 +5,6 @@ plugins {
 }
 
 android {
-    namespace 'com.example.voxshat'   // <-- добавлено
     compileSdk 34
 
     defaultConfig {
@@ -57,6 +56,9 @@ dependencies {
 
     // CircleImageView
     implementation 'de.hdodenhof:circleimageview:3.1.0'
+
+    // SwipeRefreshLayout
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 
     // Kotlin standard library
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
