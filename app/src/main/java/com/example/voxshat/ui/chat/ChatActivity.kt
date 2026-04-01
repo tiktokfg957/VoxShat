@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -37,7 +38,7 @@ class ChatActivity : AppCompatActivity() {
         chatId = intent.getLongExtra("chat_id", 0)
         currentUserId = intent.getLongExtra("current_user_id", 0)
         if (currentUserId == 0L) {
-            currentUserId = 1L // fallback
+            currentUserId = 1L
         }
 
         repository = Repository((application as VoxShatApplication).database)
@@ -57,11 +58,10 @@ class ChatActivity : AppCompatActivity() {
             supportActionBar?.title = chat?.name ?: "Чат"
 
             if (chat?.isChannel == true && chat.adminId == currentUserId) {
-                // Показываем кнопку настроек канала
                 val menu = binding.toolbar.menu
                 val settingsItem = menu.add("Настройки")
                 settingsItem.setIcon(R.drawable.ic_settings)
-                settingsItem.setShowAsAction(androidx.appcompat.view.menu.MenuItem.SHOW_AS_ACTION_ALWAYS)
+                settingsItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                 settingsItem.setOnMenuItemClickListener {
                     showChannelSettingsDialog(chat)
                     true
