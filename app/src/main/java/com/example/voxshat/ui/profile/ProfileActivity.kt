@@ -39,14 +39,13 @@ class ProfileActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Профиль"
 
+        repository = Repository((application as VoxShatApplication).database)
         currentUserId = intent.getLongExtra("current_user_id", 0)
         if (currentUserId == 0L) {
-            Toast.makeText(this, "Ошибка: не авторизован", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+            // Если не передан, используем 1 (но в реальности такого быть не должно)
+            currentUserId = 1L
+            Toast.makeText(this, "Ошибка: не передан ID пользователя", Toast.LENGTH_LONG).show()
         }
-
-        repository = Repository((application as VoxShatApplication).database)
 
         loadUserData()
 
@@ -80,7 +79,6 @@ class ProfileActivity : AppCompatActivity() {
                 }
             } else {
                 Toast.makeText(this@ProfileActivity, "Пользователь не найден", Toast.LENGTH_SHORT).show()
-                finish()
             }
         }
     }
