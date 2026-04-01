@@ -38,7 +38,7 @@ class ChatActivity : AppCompatActivity() {
         chatId = intent.getLongExtra("chat_id", 0)
         currentUserId = intent.getLongExtra("current_user_id", 0)
         if (currentUserId == 0L) {
-            currentUserId = 1L
+            currentUserId = 1L // fallback, но лучше так не оставлять
         }
 
         repository = Repository((application as VoxShatApplication).database)
@@ -52,14 +52,17 @@ class ChatActivity : AppCompatActivity() {
         }
         binding.recyclerView.adapter = adapter
 
+        // Загружаем чат и настраиваем тулбар
         lifecycleScope.launch {
             val chat = repository.getChatById(chatId)
             currentChat = chat
             supportActionBar?.title = chat?.name ?: "Чат"
 
-            // Показываем иконку шестерёнки, если это канал и пользователь владелец
-            if (chat?.isChannel == true && chat.adminId == currentUserId) {
+            // Если это канал и текущий пользователь — владелец, показываем шестерёнку
+            if (chat != null && chat.isChannel && chat.adminId == currentUserId) {
                 val menu = binding.toolbar.menu
+                // Очищаем меню, чтобы не дублировать
+                menu.clear()
                 val settingsItem = menu.add("Настройки")
                 settingsItem.setIcon(R.drawable.ic_settings)
                 settingsItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
