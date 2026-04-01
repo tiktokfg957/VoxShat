@@ -18,6 +18,9 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        supportActionBar?.title = "Настройки"
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
         sharedPrefs = getSharedPreferences("settings", MODE_PRIVATE)
 
         val isDark = sharedPrefs.getBoolean("dark_theme", false)
@@ -30,9 +33,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnChangePassword.setOnClickListener {
             Toast.makeText(this, "Смена пароля будет доступна после подключения Firebase", Toast.LENGTH_SHORT).show()
         }
-
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     private fun setTheme(isDark: Boolean) {
