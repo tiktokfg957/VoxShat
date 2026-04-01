@@ -5,11 +5,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import android.view.MenuItem
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voxshat.R
@@ -18,7 +16,6 @@ import com.example.voxshat.data.Repository
 import com.example.voxshat.data.model.Chat
 import com.example.voxshat.data.model.Message
 import com.example.voxshat.databinding.ActivityChatBinding
-import com.example.voxshat.utils.getVerifiedIcon
 import kotlinx.coroutines.launch
 
 class ChatActivity : AppCompatActivity() {
@@ -41,7 +38,6 @@ class ChatActivity : AppCompatActivity() {
         chatId = intent.getLongExtra("chat_id", 0)
         currentUserId = intent.getLongExtra("current_user_id", 0)
         if (currentUserId == 0L) {
-            // fallback – в реальности нужно передавать
             currentUserId = 1L
         }
 
@@ -59,25 +55,9 @@ class ChatActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val chat = repository.getChatById(chatId)
             currentChat = chat
-
-            // Устанавливаем заголовок
             supportActionBar?.title = chat?.name ?: "Чат"
 
-            // Добавляем галочку в тулбар, если чат поддержки
-            if (chat?.username == "voxshat_support") {
-                val toolbar = binding.toolbar
-                val verifiedIcon = ImageView(this@ChatActivity)
-                verifiedIcon.setImageResource(getVerifiedIcon("support"))
-                val params = Toolbar.LayoutParams(
-                    Toolbar.LayoutParams.WRAP_CONTENT,
-                    Toolbar.LayoutParams.WRAP_CONTENT
-                )
-                params.gravity = android.view.Gravity.END
-                params.rightMargin = 56
-                toolbar.addView(verifiedIcon, params)
-            }
-
-            // Если канал и владелец – добавляем шестерёнку
+            // Показываем иконку шестерёнки, если это канал и пользователь владелец
             if (chat?.isChannel == true && chat.adminId == currentUserId) {
                 val menu = binding.toolbar.menu
                 val settingsItem = menu.add("Настройки")
