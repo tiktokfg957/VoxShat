@@ -4,14 +4,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
-import android.view.Gravity
+import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voxshat.R
@@ -60,31 +57,8 @@ class ChatActivity : AppCompatActivity() {
             val chat = repository.getChatById(chatId)
             currentChat = chat
             supportActionBar?.title = chat?.name ?: "Чат"
-
-            // Добавляем галочку для чата поддержки
-            if (chat?.username == "voxshat_support") {
-                val verifiedIcon = ImageView(this@ChatActivity)
-                verifiedIcon.setImageResource(R.drawable.ic_verified_support)
-                val layoutParams = Toolbar.LayoutParams(
-                    Toolbar.LayoutParams.WRAP_CONTENT,
-                    Toolbar.LayoutParams.WRAP_CONTENT
-                )
-                layoutParams.gravity = Gravity.END
-                layoutParams.marginEnd = 48
-                binding.toolbar.addView(verifiedIcon, layoutParams)
-            }
-
-            // Показываем шестерёнку для владельца канала
-            if (chat?.isChannel == true && chat.adminId == currentUserId) {
-                val menu = binding.toolbar.menu
-                val settingsItem = menu.add("Настройки")
-                settingsItem.setIcon(R.drawable.ic_settings)
-                settingsItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                settingsItem.setOnMenuItemClickListener {
-                    showChannelSettingsDialog(chat)
-                    true
-                }
-            }
+            // После загрузки данных пересоздаём меню, чтобы показать шестерёнку
+            invalidateOptionsMenu()
         }
 
         lifecycleScope.launch {
@@ -186,8 +160,30 @@ class ChatActivity : AppCompatActivity() {
             .show()
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_chat, menu)
+        // Добавляем шестерёнку, если текущий пользователь - владелец канала
+        currentChat?.let { chat ->
+            if (chat.isChannel && chat.adminId == currentUserId) {
+                val settingsItem = menu?.add("Настройки")
+                settingsItem?.setIcon(R.drawable.ic_settings)
+                settingsItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                settingsItem?.setOnMenuItemClickListener {
+                    showChannelSettingsDialog(chat)
+                    true
+                }
+            }
+        }
         return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                onBackPressed()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }
