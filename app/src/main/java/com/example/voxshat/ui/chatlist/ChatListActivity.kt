@@ -9,7 +9,6 @@ import android.widget.SearchView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.voxshat.R
 import com.example.voxshat.VoxShatApplication
 import com.example.voxshat.data.Repository
@@ -37,6 +36,12 @@ class ChatListActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.chats)
 
         currentUserId = intent.getLongExtra("current_user_id", 0)
+        if (currentUserId == 0L) {
+            // Если ID не передан – завершаем активность (не должно происходить)
+            finish()
+            return
+        }
+
         repository = Repository((application as VoxShatApplication).database)
 
         adapter = ChatListAdapter(
