@@ -52,7 +52,6 @@ class MessageAdapter(
             tvMessage.text = message.text
             tvTime.text = DateUtils.formatMessageTime(message.timestamp)
 
-            // Галочка только для своих сообщений
             if (message.senderId == currentUserId && ivReadStatus != null) {
                 ivReadStatus.visibility = View.VISIBLE
                 if (message.isRead) {
