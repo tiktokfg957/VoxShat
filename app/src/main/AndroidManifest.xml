@@ -14,7 +14,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VoxShat"
         android:name=".VoxShatApplication">
-        
+
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="true">
@@ -23,27 +23,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
         <activity
             android:name=".ui.chatlist.ChatListActivity"
             android:exported="false" />
-        
+
         <activity
             android:name=".ui.chat.ChatActivity"
             android:exported="false" />
-        
+
         <activity
             android:name=".ui.profile.ProfileActivity"
             android:exported="false" />
-        
+
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false" />
-        
+
         <activity
             android:name=".ui.channel.CreateChannelActivity"
             android:exported="false" />
-        
+
     </application>
 
 </manifest>
