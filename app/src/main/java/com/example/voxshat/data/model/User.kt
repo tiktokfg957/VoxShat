@@ -7,7 +7,11 @@ import androidx.room.PrimaryKey
 data class User(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val name: String,
-    val avatar: String? = null,
-    val status: String = "онлайн"
+    var name: String,
+    var username: String = "",
+    var avatar: String? = null,
+    var status: String = "онлайн",
+    var role: String = "user", // user, support, moderator, admin, business, partner, celebrity
+    var verifiedType: String? = null, // support, moderator, admin, business, partner, celebrity
+    var verifiedAt: Long? = null
 )
