@@ -51,7 +51,7 @@
                 android:id="@+id/btnChangeStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Сменить статус"
+                android:text="@string/change_status"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_marginBottom="16dp" />
 
