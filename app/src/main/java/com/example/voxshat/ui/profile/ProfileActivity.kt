@@ -3,13 +3,14 @@ package com.example.voxshat.ui.profile
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.voxshat.R
 import com.example.voxshat.VoxShatApplication
 import com.example.voxshat.data.Repository
+import com.example.voxshat.data.model.User
 import com.example.voxshat.databinding.ActivityProfileBinding
 import com.example.voxshat.ui.auth.LoginActivity
 import com.example.voxshat.ui.settings.SettingsActivity
@@ -23,11 +24,9 @@ class ProfileActivity : AppCompatActivity() {
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            // Сохраняем URI в SharedPreferences
             val prefs = getSharedPreferences("user_prefs", MODE_PRIVATE)
             prefs.edit().putString("avatar_uri", uri.toString()).apply()
             binding.ivAvatar.setImageURI(uri)
-            // Здесь можно обновить аватар и в базе данных (пока не будем)
         }
     }
 
@@ -36,28 +35,14 @@ class ProfileActivity : AppCompatActivity() {
         binding = ActivityProfileBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        supportActionBar?.title = "Профиль"
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "Профиль"
 
         repository = Repository((application as VoxShatApplication).database)
+        currentUserId = 1 // В реальном проекте нужно передавать через Intent
 
-        // Здесь нужно передавать currentUserId из SharedPreferences или Intent
-        // Для простоты будем считать, что у нас есть текущий пользователь с id 1
-        currentUserId = 1
-
-        lifecycleScope.launch {
-            val user = repository.getUserById(currentUserId)
-            if (user != null) {
-                binding.tvUsername.text = user.name
-                binding.tvStatus.text = user.status
-            }
-        }
-
-        // Загружаем сохранённый аватар
-        val savedUri = getSharedPreferences("user_prefs", MODE_PRIVATE).getString("avatar_uri", null)
-        savedUri?.let {
-            binding.ivAvatar.setImageURI(Uri.parse(it))
-        }
+        loadUserData()
 
         binding.ivAvatar.setOnClickListener {
             pickImageLauncher.launch("image/*")
@@ -77,9 +62,23 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadUserData() {
+        lifecycleScope.launch {
+            val user = repository.getUserById(currentUserId)
+            if (user != null) {
+                binding.tvUsername.text = user.name
+                binding.tvStatus.text = user.status
+                val savedUri = getSharedPreferences("user_prefs", MODE_PRIVATE).getString("avatar_uri", null)
+                savedUri?.let {
+                    binding.ivAvatar.setImageURI(Uri.parse(it))
+                }
+            }
+        }
+    }
+
     private fun showStatusDialog() {
         val statuses = arrayOf("онлайн", "офлайн", "не беспокоить", "скоро вернусь")
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        android.app.AlertDialog.Builder(this)
             .setTitle("Выберите статус")
             .setItems(statuses) { _, which ->
                 val newStatus = statuses[which]
