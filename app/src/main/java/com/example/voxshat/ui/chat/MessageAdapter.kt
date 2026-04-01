@@ -3,12 +3,12 @@ package com.example.voxshat.ui.chat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.voxshat.R
 import com.example.voxshat.data.model.Message
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.voxshat.utils.DateUtils
 
 class MessageAdapter(
     private val currentUserId: Long,
@@ -46,11 +46,20 @@ class MessageAdapter(
     inner class MessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvMessage: TextView = itemView.findViewById(R.id.tvMessage)
         private val tvTime: TextView = itemView.findViewById(R.id.tvTime)
+        private val ivReadStatus: ImageView? = itemView.findViewById(R.id.ivReadStatus)
 
         fun bind(message: Message) {
             tvMessage.text = message.text
-            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-            tvTime.text = sdf.format(Date(message.timestamp))
+            tvTime.text = DateUtils.formatMessageTime(message.timestamp)
+
+            if (message.senderId == currentUserId && ivReadStatus != null) {
+                ivReadStatus.visibility = View.VISIBLE
+                if (message.isRead) {
+                    ivReadStatus.setImageResource(R.drawable.ic_read)
+                } else {
+                    ivReadStatus.setImageResource(R.drawable.ic_sent)
+                }
+            }
         }
     }
 
