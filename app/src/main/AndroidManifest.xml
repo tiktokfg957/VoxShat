@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.voxshat">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
         android:allowBackup="true"
@@ -12,6 +15,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VoxShat"
         android:name=".VoxShatApplication">
+        
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="true">
@@ -20,20 +24,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
         <activity
             android:name=".ui.chatlist.ChatListActivity"
             android:exported="false" />
+        
         <activity
             android:name=".ui.chat.ChatActivity"
             android:exported="false" />
+        
         <activity
             android:name=".ui.profile.ProfileActivity"
             android:exported="false" />
+        
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false" />
+        
+        <activity
+            android:name=".ui.channel.CreateChannelActivity"
+            android:exported="false" />
+        
     </application>
 
 </manifest>
-
-<activity android:name=".ui.channel.CreateChannelActivity" />
