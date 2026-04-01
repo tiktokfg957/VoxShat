@@ -8,8 +8,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.voxshat.R
 import com.example.voxshat.data.model.Chat
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.voxshat.utils.DateUtils
+import com.example.voxshat.utils.getVerifiedIcon
 
 class ChatListAdapter(
     private val onChatClick: (Chat) -> Unit,
@@ -43,6 +43,7 @@ class ChatListAdapter(
     class ChatViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val ivAvatar: ImageView = itemView.findViewById(R.id.ivAvatar)
         private val tvName: TextView = itemView.findViewById(R.id.tvName)
+        private val ivVerified: ImageView = itemView.findViewById(R.id.ivVerified)
         private val tvLastMessage: TextView = itemView.findViewById(R.id.tvLastMessage)
         private val tvTime: TextView = itemView.findViewById(R.id.tvTime)
         private val tvUnread: TextView = itemView.findViewById(R.id.tvUnread)
@@ -50,17 +51,31 @@ class ChatListAdapter(
         fun bind(chat: Chat) {
             tvName.text = chat.name
             tvLastMessage.text = chat.lastMessage ?: "Нет сообщений"
-            if (chat.lastMessageTime > 0) {
-                val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-                tvTime.text = sdf.format(Date(chat.lastMessageTime))
-            } else {
-                tvTime.text = ""
-            }
+            tvTime.text = DateUtils.formatChatTime(chat.lastMessageTime)
             if (chat.unreadCount > 0) {
                 tvUnread.visibility = View.VISIBLE
                 tvUnread.text = chat.unreadCount.toString()
             } else {
                 tvUnread.visibility = View.GONE
+            }
+
+            val verifiedType = when (chat.username) {
+                "voxshat_support" -> "support"
+                "voxshat_admin" -> "admin"
+                else -> null
+            }
+            if (verifiedType != null) {
+                ivVerified.visibility = View.VISIBLE
+                ivVerified.setImageResource(getVerifiedIcon(verifiedType))
+                ivVerified.setOnClickListener {
+                    android.widget.Toast.makeText(
+                        itemView.context,
+                        "Официальный аккаунт ${when(verifiedType){"support"->"поддержки" else->verifiedType}}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                ivVerified.visibility = View.GONE
             }
         }
     }
