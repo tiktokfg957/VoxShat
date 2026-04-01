@@ -10,7 +10,6 @@ import androidx.lifecycle.lifecycleScope
 import com.example.voxshat.R
 import com.example.voxshat.VoxShatApplication
 import com.example.voxshat.data.Repository
-import com.example.voxshat.data.model.User
 import com.example.voxshat.databinding.ActivityProfileBinding
 import com.example.voxshat.ui.auth.LoginActivity
 import com.example.voxshat.ui.settings.SettingsActivity
@@ -41,10 +40,11 @@ class ProfileActivity : AppCompatActivity() {
 
         repository = Repository((application as VoxShatApplication).database)
         currentUserId = intent.getLongExtra("current_user_id", 0)
+
         if (currentUserId == 0L) {
-            // Если не передан, используем 1 (но в реальности такого быть не должно)
-            currentUserId = 1L
-            Toast.makeText(this, "Ошибка: не передан ID пользователя", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Ошибка: пользователь не авторизован", Toast.LENGTH_SHORT).show()
+            finish()
+            return
         }
 
         loadUserData()
@@ -77,8 +77,6 @@ class ProfileActivity : AppCompatActivity() {
                 savedUri?.let {
                     binding.ivAvatar.setImageURI(Uri.parse(it))
                 }
-            } else {
-                Toast.makeText(this@ProfileActivity, "Пользователь не найден", Toast.LENGTH_SHORT).show()
             }
         }
     }
