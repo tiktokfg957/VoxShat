@@ -39,8 +39,14 @@ class ProfileActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Профиль"
 
+        currentUserId = intent.getLongExtra("current_user_id", 0)
+        if (currentUserId == 0L) {
+            Toast.makeText(this, "Ошибка: не авторизован", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
         repository = Repository((application as VoxShatApplication).database)
-        currentUserId = 1 // В реальном проекте нужно передавать через Intent
 
         loadUserData()
 
@@ -72,6 +78,9 @@ class ProfileActivity : AppCompatActivity() {
                 savedUri?.let {
                     binding.ivAvatar.setImageURI(Uri.parse(it))
                 }
+            } else {
+                Toast.makeText(this@ProfileActivity, "Пользователь не найден", Toast.LENGTH_SHORT).show()
+                finish()
             }
         }
     }
