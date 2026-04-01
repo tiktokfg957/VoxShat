@@ -8,8 +8,11 @@ data class Chat(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     var name: String,
+    var username: String = "", // для каналов
     var avatar: String? = null,
     var lastMessage: String? = null,
     var lastMessageTime: Long = System.currentTimeMillis(),
-    var unreadCount: Int = 0
+    var unreadCount: Int = 0,
+    var isChannel: Boolean = false,
+    var adminId: Long = 0 // id создателя канала
 )
