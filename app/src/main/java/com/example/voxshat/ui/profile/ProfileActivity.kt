@@ -38,10 +38,10 @@ class ProfileActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.profile)
 
+        // Получаем ID пользователя из Intent
         currentUserId = intent.getLongExtra("current_user_id", 0)
         if (currentUserId == 0L) {
-            // Если не передали, пробуем получить из SharedPreferences или просто выходим
-            Toast.makeText(this, "Ошибка: пользователь не авторизован", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Ошибка: пользователь не авторизован", Toast.LENGTH_LONG).show()
             finish()
             return
         }
