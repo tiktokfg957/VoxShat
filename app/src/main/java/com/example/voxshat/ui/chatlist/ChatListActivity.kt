@@ -37,12 +37,6 @@ class ChatListActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.chats)
 
         currentUserId = intent.getLongExtra("current_user_id", 0)
-        if (currentUserId == 0L) {
-            // fallback – если не передан, возможно, пользователь не авторизован
-            finish()
-            return
-        }
-
         repository = Repository((application as VoxShatApplication).database)
 
         adapter = ChatListAdapter(
@@ -131,9 +125,7 @@ class ChatListActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_profile -> {
-                val intent = Intent(this, ProfileActivity::class.java)
-                intent.putExtra("current_user_id", currentUserId)
-                startActivity(intent)
+                startActivity(Intent(this, ProfileActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)
