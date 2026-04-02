@@ -5,32 +5,41 @@ import java.util.*
 
 object DateUtils {
     private val todayFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    private val yesterdayFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     fun formatMessageTime(timestamp: Long): String {
-        val calendar = Calendar.getInstance()
-        val today = calendar.timeInMillis
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        val yesterday = calendar.timeInMillis
+        val now = Calendar.getInstance()
+        val today = now.timeInMillis
+        now.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterday = now.timeInMillis
 
         return when {
-            timestamp >= today -> todayFormat.format(Date(timestamp))
-            timestamp >= yesterday -> "вчера ${yesterdayFormat.format(Date(timestamp))}"
-            else -> dateFormat.format(Date(timestamp))
+            timestamp >= today -> {
+                todayFormat.format(Date(timestamp))
+            }
+            timestamp >= yesterday -> {
+                "вчера " + todayFormat.format(Date(timestamp))
+            }
+            else -> {
+                dateFormat.format(Date(timestamp))
+            }
         }
     }
 
     fun formatChatTime(timestamp: Long): String {
-        val calendar = Calendar.getInstance()
-        val today = calendar.timeInMillis
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        val yesterday = calendar.timeInMillis
+        val now = Calendar.getInstance()
+        val today = now.timeInMillis
+        now.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterday = now.timeInMillis
 
         return when {
-            timestamp >= today -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
+            timestamp >= today -> {
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
+            }
             timestamp >= yesterday -> "вчера"
-            else -> SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(timestamp))
+            else -> {
+                SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(timestamp))
+            }
         }
     }
 }
