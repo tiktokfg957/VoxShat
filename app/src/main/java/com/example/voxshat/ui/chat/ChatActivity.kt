@@ -57,11 +57,10 @@ class ChatActivity : AppCompatActivity() {
             currentChat = chat
             supportActionBar?.title = chat?.name ?: "Чат"
 
-            // Шестерёнка для владельца канала
             if (chat?.isChannel == true && chat.adminId == currentUserId) {
                 val menu = binding.toolbar.menu
                 menu.clear()
-                val settingsItem = menu.add("Настройки")
+                val settingsItem = menu.add("Настройки канала")
                 settingsItem.setIcon(R.drawable.ic_settings)
                 settingsItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                 settingsItem.setOnMenuItemClickListener {
