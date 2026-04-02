@@ -123,16 +123,19 @@ class ChatListActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-    menuInflater.inflate(R.menu.menu_chat_list, menu)
-    return true
-}
-
-override fun onOptionsItemSelected(item: MenuItem): Boolean {
-    if (item.itemId == R.id.action_profile) {
-        val intent = Intent(this, ProfileActivity::class.java)
-        intent.putExtra("current_user_id", currentUserId)
-        startActivity(intent)
+        menuInflater.inflate(R.menu.menu_chat_list, menu)
         return true
     }
-    return super.onOptionsItemSelected(item)
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_profile -> {
+                val intent = Intent(this, ProfileActivity::class.java)
+                intent.putExtra("current_user_id", currentUserId)
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
 }
