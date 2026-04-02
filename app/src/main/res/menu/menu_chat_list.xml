@@ -3,6 +3,5 @@
     <item
         android:id="@+id/action_profile"
         android:title="Профиль"
-        android:icon="@android:drawable/ic_menu_edit"
         android:showAsAction="never" />
 </menu>
