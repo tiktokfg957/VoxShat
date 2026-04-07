@@ -1,7 +1,8 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
     id 'kotlin-kapt'
+    id 'com.google.gms.google-services'
 }
 
 android {
@@ -9,7 +10,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.voxshat"
+        applicationId 'com.example.voxshat'
         minSdk 21
         targetSdk 34
         versionCode 1
@@ -24,11 +25,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
     buildFeatures {
         viewBinding true
@@ -54,15 +55,16 @@ dependencies {
     // Lifecycle
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
 
-    // CircleImageView
-    implementation 'de.hdodenhof:circleimageview:3.1.0'
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-auth-ktx'
+    implementation 'com.google.firebase:firebase-firestore-ktx'
+    implementation 'com.google.firebase:firebase-storage-ktx'
 
-    // SwipeRefreshLayout
-    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-
-    // Kotlin standard library
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
+    // Play Services Auth
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
