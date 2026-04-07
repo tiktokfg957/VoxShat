@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="16dp">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -11,66 +12,17 @@
         android:background="?attr/colorPrimary"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
 
-    <ScrollView
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="16dp">
+        android:layout_height="wrap_content"
+        android:text="Профиль пользователя"
+        android:textSize="20sp"/>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+    <Button
+        android:id="@+id/btnLogout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/logout"
+        android:layout_marginTop="32dp"/>
 
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/ivAvatar"
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                android:src="@drawable/ic_launcher"
-                android:layout_marginBottom="16dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/tvUsername"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/tvStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textColor="@android:color/darker_gray"
-                android:layout_marginBottom="16dp" />
-
-            <Button
-                android:id="@+id/btnChangeStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/change_status"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_marginBottom="16dp" />
-
-            <Button
-                android:id="@+id/btnSettings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/settings"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_marginBottom="16dp" />
-
-            <Button
-                android:id="@+id/btnLogout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/logout"
-                android:textColor="@android:color/white"
-                android:backgroundTint="@android:color/holo_red_dark" />
-
-        </LinearLayout>
-    </ScrollView>
 </LinearLayout>
