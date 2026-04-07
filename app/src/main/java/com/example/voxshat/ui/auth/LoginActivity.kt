@@ -1,73 +1,79 @@
 package com.example.voxshat.ui.auth
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.example.voxshat.VoxShatApplication
-import com.example.voxshat.data.Repository
-import com.example.voxshat.data.model.User
 import com.example.voxshat.databinding.ActivityLoginBinding
-import com.example.voxshat.ui.chatlist.ChatListActivity
-import com.example.voxshat.utils.SupportBot
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import java.util.*
+import com.example.voxshat.data.repository.AuthRepository
+import com.google.firebase.auth.PhoneAuthProvider
+import java.util.concurrent.TimeUnit
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private lateinit var repository: Repository
+    private lateinit var authRepo: AuthRepository
+    private var verificationId: String? = null
+    private var resendToken: PhoneAuthProvider.ForceResendingToken? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        repository = Repository((application as VoxShatApplication).database)
+        authRepo = AuthRepository()
 
-        binding.btnLogin.setOnClickListener {
-            val username = binding.etUsername.text.toString().trim()
-            if (username.isNotEmpty()) {
-                login(username)
+        binding.btnSendCode.setOnClickListener {
+            val phone = binding.etPhone.text.toString().trim()
+            if (phone.isNotEmpty()) {
+                sendVerificationCode(phone)
             } else {
-                Toast.makeText(this, "Введите имя пользователя", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Введите номер телефона", Toast.LENGTH_SHORT).show()
             }
         }
 
-        binding.btnDemo.setOnClickListener {
-            login("Гость")
-        }
-    }
-
-    private fun login(name: String) {
-        lifecycleScope.launch {
-            val users = repository.getAllUsers().first()
-            val existingUser = users.find { it.name == name }
-            if (existingUser != null) {
-                startChatList(existingUser.id)
+        binding.btnVerify.setOnClickListener {
+            val code = binding.etCode.text.toString().trim()
+            if (code.isNotEmpty() && verificationId != null) {
+                verifyCode(code)
             } else {
-                val baseUsername = name.lowercase(Locale.getDefault()).replace(" ", "")
-                var username = baseUsername
-                var counter = 1
-                while (repository.getUserByUsername(username) != null) {
-                    username = "$baseUsername$counter"
-                    counter++
-                }
-                val newUser = User(name = name, username = username)
-                repository.insertUser(newUser)
-                repository.populateDemoData()
-                SupportBot.ensureSupportChat(repository, newUser.id)
-                startChatList(newUser.id)
+                Toast.makeText(this, "Введите код", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun startChatList(userId: Long) {
-        val intent = Intent(this, ChatListActivity::class.java)
-        intent.putExtra("current_user_id", userId)
-        startActivity(intent)
+    private fun sendVerificationCode(phoneNumber: String) {
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                signInWithCredential(credential)
+            }
+
+            override fun onVerificationFailed(e: Exception) {
+                Toast.makeText(this@LoginActivity, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+
+            override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                this@LoginActivity.verificationId = verificationId
+                resendToken = token
+                Toast.makeText(this@LoginActivity, "Код отправлен", Toast.LENGTH_SHORT).show()
+            }
+        }
+        PhoneAuthProvider.getInstance().verifyPhoneNumber(
+            phoneNumber,
+            60,
+            TimeUnit.SECONDS,
+            this,
+            callbacks
+        )
+    }
+
+    private fun verifyCode(code: String) {
+        val credential = PhoneAuthProvider.getCredential(verificationId!!, code)
+        signInWithCredential(credential)
+    }
+
+    private fun signInWithCredential(credential: PhoneAuthCredential) {
+        authRepo.signInWithCredential(credential)
+        startActivity(Intent(this, ChatListActivity::class.java))
         finish()
     }
 }
