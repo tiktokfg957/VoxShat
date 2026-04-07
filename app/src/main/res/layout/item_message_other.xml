@@ -2,7 +2,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
     android:padding="8dp">
 
     <TextView
@@ -10,13 +9,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bubble_other"
-        android:padding="8dp"
-        android:maxWidth="300dp" />
+        android:padding="8dp"/>
 
     <TextView
         android:id="@+id/tvTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="10sp"
-        android:layout_marginTop="4dp" />
+        android:layout_marginStart="4dp"/>
 </LinearLayout>
