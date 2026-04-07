@@ -16,19 +16,18 @@ class ChatListActivity : AppCompatActivity() {
     private lateinit var adapter: ChatListAdapter
     private val repository by lazy { (application as VoxShatApplication).chatRepository }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityChatListBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    menuInflater.inflate(R.menu.menu_chat_list, menu)
+    return true
+}
 
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = getString(R.string.chats)
-
-        adapter = ChatListAdapter { chat ->
-            val intent = Intent(this, ChatActivity::class.java)
-            intent.putExtra("chat_id", chat.chatId)
-            startActivity(intent)
-        }
+override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    if (item.itemId == R.id.action_profile) {
+        startActivity(Intent(this, ProfileActivity::class.java))
+        return true
+    }
+    return super.onOptionsItemSelected(item)
+}
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
