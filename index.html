@@ -8,10 +8,10 @@
     <style>
         body { background: linear-gradient(135deg, #1e2a3a, #0f1724); }
         .auth-container {
-            max-width: 400px;
-            margin: 80px auto;
+            max-width: 420px;
+            margin: 60px auto;
             background: rgba(30, 40, 50, 0.9);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
             border-radius: 32px;
             padding: 32px 24px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
@@ -37,26 +37,27 @@
         <div class="tab" data-tab="register">Регистрация</div>
     </div>
 
-    <!-- Форма входа -->
+    <!-- Форма входа (username + пароль) -->
     <div id="loginForm" class="form active">
-        <input type="text" id="loginUsername" placeholder="Имя пользователя">
+        <input type="text" id="loginUsername" placeholder="Юзернейм (логин)">
         <input type="password" id="loginPassword" placeholder="Пароль">
         <button onclick="login()">Войти</button>
         <div class="forgot" onclick="showRecovery()">Забыли пароль?</div>
         <div id="loginMessage" class="message"></div>
     </div>
 
-    <!-- Форма регистрации -->
+    <!-- Форма регистрации (username, пароль, отображаемое имя) -->
     <div id="registerForm" class="form">
-        <input type="text" id="regUsername" placeholder="Имя пользователя">
+        <input type="text" id="regUsername" placeholder="Юзернейм (уникальный)">
+        <input type="text" id="regDisplayName" placeholder="Как вас зовут (имя)">
         <input type="password" id="regPassword" placeholder="Пароль">
         <button onclick="register()">Зарегистрироваться</button>
         <div id="regMessage" class="message"></div>
     </div>
 
-    <!-- Восстановление пароля (диалог) -->
+    <!-- Восстановление пароля -->
     <div id="recoveryDialog" style="display:none; margin-top: 20px;">
-        <input type="text" id="recoveryUsername" placeholder="Имя пользователя">
+        <input type="text" id="recoveryUsername" placeholder="Юзернейм">
         <button onclick="recoverPassword()">Сбросить пароль</button>
         <div id="recoveryMessage" class="message"></div>
     </div>
