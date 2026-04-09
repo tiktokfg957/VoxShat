@@ -5,12 +5,14 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "chats")
 data class Chat(
-    @PrimaryKey
-    val chatId: String,
-    val type: String, // "private", "group", "channel"
-    val name: String,
-    val photoUrl: String? = null,
-    val lastMessage: String? = null,
-    val lastMessageTime: Long = System.currentTimeMillis(),
-    val unreadCount: Int = 0
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    var name: String,
+    var username: String = "",
+    var avatar: String? = null,
+    var lastMessage: String? = null,
+    var lastMessageTime: Long = System.currentTimeMillis(),
+    var unreadCount: Int = 0,
+    var isChannel: Boolean = false,
+    var adminId: Long = 0
 )
