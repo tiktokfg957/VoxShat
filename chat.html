@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxShat – чат</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="chat-full">
+    <div class="chat-header" id="chatHeader">
+        <button onclick="goBack()">← Назад</button>
+        <span id="chatName"></span>
+    </div>
+    <div class="messages-area" id="messagesArea"></div>
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Сообщение...">
+        <button onclick="sendMessage()">➤</button>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
