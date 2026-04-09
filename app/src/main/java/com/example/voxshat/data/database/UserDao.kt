@@ -9,15 +9,15 @@ interface UserDao {
     @Query("SELECT * FROM users")
     fun getAllUsers(): Flow<List<User>>
 
-    @Query("SELECT * FROM users WHERE uid = :uid")
-    suspend fun getUser(uid: String): User?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert
     suspend fun insert(user: User)
 
     @Update
     suspend fun update(user: User)
 
-    @Delete
-    suspend fun delete(user: User)
+    @Query("SELECT * FROM users WHERE id = :userId")
+    suspend fun getUserById(userId: Long): User?
+
+    @Query("SELECT * FROM users WHERE username = :username")
+    suspend fun getUserByUsername(username: String): User?
 }
