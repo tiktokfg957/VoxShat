@@ -1,31 +1,28 @@
-// Инициализация хранилища (вызываем при загрузке)
-function initStorage() {
-    if (!localStorage.getItem('users')) {
-        const users = [
-            { username: 'Анна', password: '123', avatar: 'А' },
-            { username: 'Дмитрий', password: '123', avatar: 'Д' }
-        ];
-        localStorage.setItem('users', JSON.stringify(users));
-    }
-    if (!localStorage.getItem('chats')) {
-        const chats = [
-            { id: 1, name: 'Анна', avatar: 'А', lastMessage: 'Привет!', lastTime: Date.now() },
-            { id: 2, name: 'Дмитрий', avatar: 'Д', lastMessage: 'Как дела?', lastTime: Date.now() },
-            { id: 3, name: 'Поддержка', avatar: 'П', lastMessage: 'Чем помочь?', lastTime: Date.now() }
-        ];
-        localStorage.setItem('chats', JSON.stringify(chats));
-    }
-    if (!localStorage.getItem('messages')) {
-        const messages = [
-            { chatId: 1, sender: 'Анна', text: 'Привет!', timestamp: Date.now() - 3600000, isMine: false },
-            { chatId: 2, sender: 'Дмитрий', text: 'Как дела?', timestamp: Date.now() - 7200000, isMine: false }
-        ];
-        localStorage.setItem('messages', JSON.stringify(messages));
-    }
+// Инициализация хранилища
+if (!localStorage.getItem('users')) {
+    const users = [
+        { username: 'Анна', password: '123', avatar: 'А' },
+        { username: 'Дмитрий', password: '123', avatar: 'Д' }
+    ];
+    localStorage.setItem('users', JSON.stringify(users));
 }
 
-// Вызов при загрузке любой страницы
-initStorage();
+if (!localStorage.getItem('chats')) {
+    const chats = [
+        { id: 1, name: 'Анна', avatar: 'А', lastMessage: 'Привет!', lastTime: Date.now() },
+        { id: 2, name: 'Дмитрий', avatar: 'Д', lastMessage: 'Как дела?', lastTime: Date.now() },
+        { id: 3, name: 'Поддержка', avatar: 'П', lastMessage: 'Чем помочь?', lastTime: Date.now() }
+    ];
+    localStorage.setItem('chats', JSON.stringify(chats));
+}
+
+if (!localStorage.getItem('messages')) {
+    const messages = [
+        { chatId: 1, sender: 'Анна', text: 'Привет!', timestamp: Date.now() - 3600000, isMine: false },
+        { chatId: 2, sender: 'Дмитрий', text: 'Как дела?', timestamp: Date.now() - 7200000, isMine: false }
+    ];
+    localStorage.setItem('messages', JSON.stringify(messages));
+}
 
 // ========== СТРАНИЦА ВХОДА ==========
 function login() {
@@ -44,10 +41,6 @@ function login() {
 function register() {
     const username = document.getElementById('regUsername').value.trim();
     const password = document.getElementById('regPassword').value.trim();
-    if (username === '' || password === '') {
-        document.getElementById('regMessage').innerText = 'Заполните поля';
-        return;
-    }
     const users = JSON.parse(localStorage.getItem('users'));
     if (users.find(u => u.username === username)) {
         document.getElementById('regMessage').innerText = 'Пользователь уже существует';
@@ -55,11 +48,8 @@ function register() {
     }
     users.push({ username, password, avatar: username[0] });
     localStorage.setItem('users', JSON.stringify(users));
-    document.getElementById('regMessage').innerText = 'Регистрация успешна! Теперь войдите.';
-    // Автоматически переключаем на вкладку входа
+    alert('Регистрация успешна! Теперь войдите.');
     document.querySelector('.tab[data-tab="login"]').click();
-    document.getElementById('loginUsername').value = username;
-    document.getElementById('loginPassword').value = '';
 }
 
 function showRecovery() {
@@ -73,12 +63,10 @@ function recoverPassword() {
     const user = users.find(u => u.username === username);
     if (user) {
         const newPass = prompt('Новый пароль для ' + username);
-        if (newPass && newPass.trim() !== '') {
-            user.password = newPass.trim();
+        if (newPass) {
+            user.password = newPass;
             localStorage.setItem('users', JSON.stringify(users));
             document.getElementById('recoveryMessage').innerText = 'Пароль изменён!';
-        } else {
-            document.getElementById('recoveryMessage').innerText = 'Пароль не может быть пустым';
         }
     } else {
         document.getElementById('recoveryMessage').innerText = 'Пользователь не найден';
@@ -104,9 +92,29 @@ if (window.location.pathname.includes('chats.html')) {
     const currentUser = localStorage.getItem('currentUser');
     if (!currentUser) window.location.href = 'index.html';
 
-    document.getElementById('userInfo').innerHTML = `<strong>${currentUser}</strong>`;
-    renderChats();
+    // Отображаем имя пользователя
+    document.getElementById('userName').innerText = currentUser;
 
+    // Иконка настроек
+    const settingsIcon = document.getElementById('settingsIcon');
+    const modal = document.getElementById('profileModal');
+    const closeSpan = document.querySelector('.close');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    settingsIcon.onclick = () => {
+        document.getElementById('profileUsername').innerText = currentUser;
+        modal.style.display = 'flex';
+    };
+    closeSpan.onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => {
+        if (event.target === modal) modal.style.display = 'none';
+    };
+    logoutBtn.onclick = () => {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+    };
+
+    renderChats();
     document.getElementById('searchChats').addEventListener('input', (e) => {
         renderChats(e.target.value);
     });
@@ -151,8 +159,6 @@ if (window.location.pathname.includes('chat.html')) {
 
     document.getElementById('chatName').innerText = chat.name;
     renderMessages(chatId);
-
-    // Авто-обновление каждую секунду
     setInterval(() => renderMessages(chatId), 1000);
 }
 
@@ -167,7 +173,7 @@ function renderMessages(chatId) {
         const div = document.createElement('div');
         div.className = `message ${msg.sender === currentUser ? 'message-mine' : ''}`;
         div.innerHTML = `
-            <div>${escapeHtml(msg.text)}</div>
+            <div>${msg.text}</div>
             <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
         `;
         container.appendChild(div);
@@ -194,7 +200,6 @@ function sendMessage() {
     };
     messages.push(newMsg);
     localStorage.setItem('messages', JSON.stringify(messages));
-    // Обновить последнее сообщение в чате
     chat.lastMessage = text;
     chat.lastTime = Date.now();
     localStorage.setItem('chats', JSON.stringify(chats));
@@ -204,14 +209,4 @@ function sendMessage() {
 
 function goBack() {
     window.location.href = 'chats.html';
-}
-
-// Простая защита от XSS
-function escapeHtml(str) {
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
 }
