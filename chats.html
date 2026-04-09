@@ -9,17 +9,28 @@
 <body>
 <div class="app-container">
     <div class="sidebar">
-        <div class="user-info" id="userInfo"></div>
+        <div class="user-info">
+            <span id="userName"></span>
+            <div class="settings-icon" id="settingsIcon">⚙️</div>
+        </div>
         <div class="search-bar"><input type="text" placeholder="Поиск" id="searchChats"></div>
         <div class="chats-list" id="chatsList"></div>
-        <div class="bottom-menu">
-            <button onclick="logout()">Выйти</button>
-        </div>
     </div>
     <div class="chat-area" id="chatArea">
         <div class="placeholder">Выберите чат</div>
     </div>
 </div>
+
+<!-- Модальное окно настроек профиля -->
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Профиль</h3>
+        <p><strong>Имя:</strong> <span id="profileUsername"></span></p>
+        <button id="logoutBtn">Выйти из аккаунта</button>
+    </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>
