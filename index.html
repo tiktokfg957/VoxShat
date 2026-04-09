@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxShat - мессенджер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <h1>VoxShat</h1>
+        <input type="text" id="username" placeholder="Ваше имя">
+        <button onclick="login()">Войти</button>
+    </div>
+    <div class="chats-container" id="chatsContainer" style="display:none">
+        <div class="header">Чаты</div>
+        <div class="chat-list" id="chatList">
+            <div class="chat-item" onclick="openChat(1)">Анна</div>
+            <div class="chat-item" onclick="openChat(2)">Дмитрий</div>
+            <div class="chat-item" onclick="openChat(3)">Поддержка</div>
+        </div>
+    </div>
+    <script>
+        function login() {
+            const name = document.getElementById('username').value;
+            if(name.trim() !== '') {
+                localStorage.setItem('voxshat_user', name);
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('chatsContainer').style.display = 'block';
+            }
+        }
+        function openChat(chatId) {
+            window.location.href = `chat.html?chat=${chatId}`;
+        }
+        // Проверка при загрузке
+        if(localStorage.getItem('voxshat_user')) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('chatsContainer').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
