@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessageDao {
-    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp ASC")
-    fun getMessagesForChat(chatId: String): Flow<List<Message>>
+    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp DESC")
+    fun getMessagesForChat(chatId: Long): Flow<List<Message>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert
     suspend fun insert(message: Message)
 
     @Update
@@ -19,5 +19,5 @@ interface MessageDao {
     suspend fun delete(message: Message)
 
     @Query("UPDATE messages SET isRead = 1 WHERE chatId = :chatId AND senderId != :currentUserId")
-    suspend fun markMessagesAsRead(chatId: String, currentUserId: String)
+    suspend fun markMessagesAsRead(chatId: Long, currentUserId: Long)
 }
