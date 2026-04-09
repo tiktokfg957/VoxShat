@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxShat – чаты</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-container">
+    <div class="sidebar">
+        <div class="user-info" id="userInfo"></div>
+        <div class="search-bar"><input type="text" placeholder="Поиск" id="searchChats"></div>
+        <div class="chats-list" id="chatsList"></div>
+        <div class="bottom-menu">
+            <button onclick="logout()">Выйти</button>
+        </div>
+    </div>
+    <div class="chat-area" id="chatArea">
+        <div class="placeholder">Выберите чат</div>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
