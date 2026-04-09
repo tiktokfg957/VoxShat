@@ -9,25 +9,41 @@
 <body>
 <div class="app-container">
     <div class="sidebar">
-        <div class="user-info">
-            <span id="userName"></span>
+        <div class="user-info" id="userInfo">
+            <div class="user-avatar" id="userAvatar"></div>
+            <div class="user-details">
+                <div class="user-name" id="userDisplayName"></div>
+                <div class="user-username">@<span id="userUsername"></span></div>
+            </div>
             <div class="settings-icon" id="settingsIcon">⚙️</div>
         </div>
         <div class="search-bar"><input type="text" placeholder="Поиск" id="searchChats"></div>
         <div class="chats-list" id="chatsList"></div>
+        <div class="bottom-menu">
+            <button onclick="logout()">Выйти</button>
+        </div>
     </div>
     <div class="chat-area" id="chatArea">
         <div class="placeholder">Выберите чат</div>
     </div>
 </div>
 
-<!-- Модальное окно настроек профиля -->
-<div id="profileModal" class="modal">
+<!-- Модальное окно редактирования профиля -->
+<div id="profileModal" class="modal" style="display:none">
     <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Профиль</h3>
-        <p><strong>Имя:</strong> <span id="profileUsername"></span></p>
-        <button id="logoutBtn">Выйти из аккаунта</button>
+        <span class="close" onclick="closeProfileModal()">&times;</span>
+        <h3>Редактировать профиль</h3>
+        <div class="avatar-edit">
+            <div class="current-avatar" id="modalAvatar"></div>
+            <input type="file" id="avatarUpload" accept="image/*">
+            <button onclick="uploadAvatar()">Загрузить аватар</button>
+        </div>
+        <label>Отображаемое имя:</label>
+        <input type="text" id="editDisplayName" placeholder="Имя">
+        <label>Новый пароль (оставьте пустым, если не менять):</label>
+        <input type="password" id="editPassword" placeholder="Новый пароль">
+        <button onclick="saveProfile()">Сохранить изменения</button>
+        <div id="profileMessage" class="message"></div>
     </div>
 </div>
 
